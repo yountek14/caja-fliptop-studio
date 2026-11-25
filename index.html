@@ -2456,7 +2456,32 @@
         const imgY = minY + oy - pad;
         doc.addImage(artCanvas.toDataURL('image/png'), 'PNG', imgX, imgY, artW, artH, undefined, 'FAST');
 
-        // Silueta vectorial de recorte (solo contorno exterior + ventanita, sin letras ni líneas de doblez)
+        // Pliegues de doblez Valle (+90°, gris fino punteado discreto)
+        const valleySegs = [
+          [0, 0, W, 0], [0, 0, 0, -H_hinge], [W, 0, W, -H_hinge], [0, -H_hinge, W, -H_hinge],
+          [0, D, W, D], [-D, 0, 0, 0], [-D, 0, -D, -H_front], [-D - W, 0, -D - W, -H_front],
+          [W, 0, W + D, 0], [0, lidBaseY, 0, lidTopY], [W, lidBaseY, W, lidTopY],
+          [-D, lidBaseY + diffH, -D, lidTopY], [W + D, lidBaseY + diffH, W + D, lidTopY],
+          [0, lidTopY, W, lidTopY], [0, lidRoofY, W, lidRoofY]
+        ];
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineWidth(0.22);
+        doc.setLineDashPattern([2.0, 1.8], 0);
+        valleySegs.forEach(([x1, y1, x2, y2]) => doc.line(tx(x1), ty(y1), tx(x2), ty(y2)));
+
+        // Pliegues de doblez Montaña (-90° bolsillo, naranja suave guion-punto; solo Con Encendedor)
+        if (state.hasPocket) {
+          const mountainSegs = [
+            [px0, 0, px0, -(H_front - 1)], [px1, 0, px1, -Lh], [px2, 0, px2, -Lh],
+            [px3, 0, px3, -Lh], [px1, 0, px2, 0], [px1, 0, px1, Lw], [px2, 0, px2, Lw]
+          ];
+          doc.setDrawColor(234, 118, 45);
+          doc.setLineWidth(0.24);
+          doc.setLineDashPattern([3.0, 1.5, 0.8, 1.5], 0);
+          mountainSegs.forEach(([x1, y1, x2, y2]) => doc.line(tx(x1), ty(y1), tx(x2), ty(y2)));
+        }
+
+        // Silueta vectorial exterior de recorte (+ ventanita si está activa; sin letras ni espejo)
         doc.setDrawColor(28, 25, 23);
         doc.setLineWidth(0.35);
         doc.setLineDashPattern([], 0);

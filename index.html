@@ -19,6 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     :root {
@@ -124,12 +125,6 @@
 
     <!-- Acciones rápidas -->
     <div class="flex items-center gap-1.5">
-      <button id="quick-skin-btn" title="Cargar Skin Celestial (13 caras a medida) en 1 clic"
-        class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-[#caa368]/60 bg-[#1a242e] hover:bg-[#243240] text-[#f0d6a7] shadow-sm transition">
-        <span>🌙</span>
-        <span>Skins</span>
-      </button>
-
       <button id="open-designs-btn" title="Abrir biblioteca de diseños guardados y presets"
         class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-amber-600/15 dark:bg-amber-500/20 hover:bg-amber-600/25 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 transition">
         <span>🎨</span>
@@ -514,7 +509,18 @@
             </ul>
           </div>
 
-          <div class="space-y-2 text-xs">
+          <div class="space-y-2.5 text-xs">
+            <label class="block space-y-1">
+              <span class="font-semibold text-stone-700 dark:text-zinc-200">Tamaño de hoja (PDF 1:1)</span>
+              <select id="pdf-paper-size" class="w-full border border-stone-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-zinc-900 text-xs font-medium">
+                <option value="a4" selected>A4 Horizontal · 297 × 210 mm (Recomendado)</option>
+                <option value="letter">Carta / Letter Horizontal · 279 × 216 mm</option>
+                <option value="legal">Oficio / Legal Horizontal · 356 × 216 mm</option>
+                <option value="a3">A3 Horizontal · 420 × 297 mm</option>
+              </select>
+              <span class="block text-[10px] text-emerald-700 dark:text-emerald-400">✓ La plantilla mide 256 × 172 mm: entra al 100% real en todas estas hojas.</span>
+            </label>
+
             <label class="flex items-center justify-between">
               <span class="font-medium text-stone-700 dark:text-zinc-300">Sangrado de corte (bleed)</span>
               <select id="export-bleed" class="border border-stone-200 dark:border-zinc-700 rounded-lg px-2 py-1 bg-white dark:bg-zinc-900 text-xs">
@@ -528,14 +534,27 @@
             </label>
           </div>
 
-          <div class="space-y-2">
-            <button id="download-svg-a" class="w-full flex items-center justify-center gap-2 bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-sm active:scale-[0.99] transition">
+          <!-- Exportar PDF listo para imprimir y recortar -->
+          <div class="rounded-xl p-3 bg-emerald-50/70 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">PDF Listo para Imprimir y Recortar (300 DPI)</div>
+            <button id="download-pdf-duplex" class="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 px-3 rounded-xl shadow-sm active:scale-[0.99] transition">
+              <span>📄 Descargar PDF Doble Cara (Lado A + B)</span>
+            </button>
+            <button id="download-pdf-a" class="w-full flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 hover:bg-stone-100 dark:hover:bg-zinc-700 text-stone-800 dark:text-zinc-100 text-xs font-semibold py-2 px-3 rounded-xl border border-stone-200 dark:border-zinc-700 active:scale-[0.99] transition">
+              <span>📄 Descargar PDF Solo Lado A (1 Página)</span>
+            </button>
+          </div>
+
+          <!-- Exportar SVG vectorial -->
+          <div class="space-y-1.5">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Vectores SVG (Plotter / Illustrator)</div>
+            <button id="download-svg-a" class="w-full flex items-center justify-center gap-2 bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white text-xs font-semibold py-2 px-4 rounded-xl shadow-sm active:scale-[0.99] transition">
               <span>⬇ SVG Lado A — Caja + Tapa (con Arte)</span>
             </button>
-            <button id="download-svg-b" class="w-full flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-sm active:scale-[0.99] transition">
+            <button id="download-svg-b" class="w-full flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold py-2 px-4 rounded-xl shadow-sm active:scale-[0.99] transition">
               <span>⬇ SVG Lado B — Bolsillo Espejado (Doble Cara)</span>
             </button>
-            <button id="download-svg-clean" class="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-semibold py-2.5 px-4 rounded-xl border border-stone-700 active:scale-[0.99] transition">
+            <button id="download-svg-clean" class="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-semibold py-2 px-4 rounded-xl border border-stone-700 active:scale-[0.99] transition">
               <span>⬇ SVG Troquel Limpio (Solo Líneas)</span>
             </button>
           </div>
@@ -2205,6 +2224,192 @@
 
     /**
      * ============================================================================
+     * 9B. EXPORTACIÓN PDF 1:1 EN MILÍMETROS (300 DPI + LÍNEAS VECTORIALES)
+     * ============================================================================
+     */
+    function generateAndDownloadPDF(duplex = true) {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('No se cargó jsPDF (revisa tu conexión a internet)');
+        return;
+      }
+      showToast('Generando PDF 1:1 (300 DPI)...');
+
+      const PAPER_SIZES = {
+        a4:     { w: 297,   h: 210,   label: 'A4 Horizontal (297×210 mm)' },
+        letter: { w: 279.4, h: 215.9, label: 'Carta Horizontal (279×216 mm)' },
+        legal:  { w: 355.6, h: 215.9, label: 'Oficio Horizontal (356×216 mm)' },
+        a3:     { w: 420,   h: 297,   label: 'A3 Horizontal (420×297 mm)' }
+      };
+      const paperKey = document.getElementById('pdf-paper-size').value || 'a4';
+      const paper = PAPER_SIZES[paperKey] || PAPER_SIZES.a4;
+      const bleed = parseFloat(document.getElementById('export-bleed').value) || 0;
+      const includeLabels = document.getElementById('export-labels').checked;
+
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, diffH, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer } = DIM;
+      const minX = -(D + W + T_glue);                        // -89
+      const maxX = W + D + Lw + D + Lw + T_glue;             // 167
+      const minY = -(H_hinge + H_lid_back + D + H_lid_front);// -138
+      const maxY = D + T_base;                               // 34
+      const dieW = maxX - minX;                              // 256 mm
+      const dieH = maxY - minY;                              // 172 mm
+
+      // Centrado exacto en la hoja (clave para que Lado A y Lado B calcen al voltear)
+      const ox = (paper.w - dieW) / 2 - minX;
+      const oy = (paper.h - dieH) / 2 - minY + 4; // +4 mm para dejar espacio al título superior
+
+      const lidBaseY = -H_hinge, lidTopY = -H_hinge - H_lid_back;
+      const lidRoofY = lidTopY - D, lidFrontY = lidRoofY - H_lid_front;
+      const px0 = W + D, px1 = px0 + Lw, px2 = px1 + D, px3 = px2 + Lw, px4 = px3 + T_glue;
+
+      const cutPolys = [
+        [[0, 0], [0, D], [chamfer, D + T_base], [W - chamfer, D + T_base], [W, D], [W, 0]],
+        [[-D, 0], [-D + chamfer, T_side_base], [-chamfer, T_side_base], [0, 0]],
+        [[-D, 0], [-D - W, 0], [-D - W - T_glue, -chamfer], [-D - W - T_glue, -H_front + chamfer], [-D - W, -H_front], [-D, -H_front], [0, -H_hinge]],
+        [
+          [0, lidBaseY], [-D, lidBaseY + diffH], [-D - T_lid_glue, lidBaseY + diffH - chamfer],
+          [-D - T_lid_glue, lidTopY + chamfer], [-D, lidTopY], [0, lidTopY],
+          [0, lidRoofY], [0, lidFrontY], [W, lidFrontY], [W, lidRoofY],
+          [W, lidTopY], [W + D, lidTopY], [W + D + T_lid_glue, lidTopY + chamfer],
+          [W + D + T_lid_glue, lidBaseY + diffH - chamfer], [W + D, lidBaseY + diffH], [W, lidBaseY]
+        ],
+        [[W, -H_hinge], [W + D, -H_front]],
+        [[W, 0], [W + chamfer, T_side_base], [W + D - chamfer, T_side_base], [W + D, 0]],
+        [[px0, -(H_front - 1)], [px0 + T_lid_glue + 1, -(H_front - 1)], [px0 + T_lid_glue + 1, -Lh], [px1, -Lh], [px2, -Lh], [px3, -Lh], [px4, -Lh + chamfer], [px4, -chamfer], [px3, 0], [px2, 0]],
+        [[px1, 0], [px1 - T_pflap, chamfer], [px1 - T_pflap, Lw - chamfer], [px1, Lw], [px2, Lw], [px2 + T_pflap, Lw - chamfer], [px2 + T_pflap, chamfer], [px2, 0]],
+        [[px0, 0], [px1, 0]]
+      ];
+
+      const valleySegs = [
+        [0, 0, W, 0], [0, 0, 0, -H_hinge], [W, 0, W, -H_hinge], [0, -H_hinge, W, -H_hinge],
+        [0, D, W, D], [-D, 0, 0, 0], [-D, 0, -D, -H_front], [-D - W, 0, -D - W, -H_front],
+        [W, 0, W + D, 0], [0, lidBaseY, 0, lidTopY], [W, lidBaseY, W, lidTopY],
+        [-D, lidBaseY + diffH, -D, lidTopY], [W + D, lidBaseY + diffH, W + D, lidTopY],
+        [0, lidTopY, W, lidTopY], [0, lidRoofY, W, lidRoofY]
+      ];
+
+      const mountainSegs = [
+        [px0, 0, px0, -(H_front - 1)], [px1, 0, px1, -Lh], [px2, 0, px2, -Lh],
+        [px3, 0, px3, -Lh], [px1, 0, px2, 0], [px1, 0, px1, Lw], [px2, 0, px2, Lw]
+      ];
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [paper.w, paper.h] });
+
+      const renderPage = (side, isFirst) => {
+        if (!isFirst) doc.addPage([paper.w, paper.h], 'landscape');
+        const mirror = side === 'B';
+        const tx = x => mirror ? (paper.w - (x + ox)) : (x + ox);
+        const ty = y => y + oy;
+
+        // 1. Capa de arte a 305 DPI (12 px/mm) en un canvas único recortado exactamente por polígono
+        const DPI_PX = 12;
+        const pad = bleed + 1;
+        const artW = dieW + pad * 2;
+        const artH = dieH + pad * 2;
+        const artCanvas = document.createElement('canvas');
+        artCanvas.width = Math.round(artW * DPI_PX);
+        artCanvas.height = Math.round(artH * DPI_PX);
+        const ctx = artCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, artCanvas.width, artCanvas.height);
+
+        if (mirror) {
+          ctx.translate(artCanvas.width, 0);
+          ctx.scale(-1, 1);
+        }
+
+        const toPx = (x, y) => [(x - minX + pad) * DPI_PX, (y - minY + pad) * DPI_PX];
+        EXTERNAL_FACES.filter(f => f.side === side && faceHasContent(f)).forEach(f => {
+          const hiRes = renderFaceCanvas(f, DPI_PX);
+          const b = polyBounds(f.poly2D);
+          const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2;
+          ctx.save();
+          ctx.beginPath();
+          f.poly2D.forEach(([x, y], i) => {
+            const bx = bleed ? x + Math.sign(x - cx) * bleed : x;
+            const by = bleed ? y + Math.sign(y - cy) * bleed : y;
+            const [px, py] = toPx(bx, by);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          });
+          ctx.closePath();
+          ctx.clip();
+          const [x0, y0] = toPx(b.minX - bleed, b.minY - bleed);
+          ctx.drawImage(hiRes, x0, y0, (b.w + bleed * 2) * DPI_PX, (b.h + bleed * 2) * DPI_PX);
+          ctx.restore();
+        });
+
+        const imgX = mirror ? (paper.w - (maxX + ox + pad)) : (minX + ox - pad);
+        const imgY = minY + oy - pad;
+        doc.addImage(artCanvas.toDataURL('image/png'), 'PNG', imgX, imgY, artW, artH, undefined, 'FAST');
+
+        // 2. Líneas vectoriales de Doblez Valle (Azul punteado)
+        doc.setDrawColor(37, 99, 235);
+        doc.setLineWidth(0.3);
+        doc.setLineDashPattern([2.4, 1.6], 0);
+        valleySegs.forEach(([x1, y1, x2, y2]) => doc.line(tx(x1), ty(y1), tx(x2), ty(y2)));
+
+        // 3. Líneas vectoriales de Doblez Montaña (Naranja punteado)
+        doc.setDrawColor(234, 88, 12);
+        doc.setLineWidth(0.35);
+        mountainSegs.forEach(([x1, y1, x2, y2]) => doc.line(tx(x1), ty(y1), tx(x2), ty(y2)));
+
+        // 4. Líneas vectoriales de Corte Continuo (Negro)
+        doc.setDrawColor(28, 25, 23);
+        doc.setLineWidth(0.4);
+        doc.setLineDashPattern([], 0);
+        cutPolys.forEach(pts => {
+          for (let i = 0; i < pts.length - 1; i++) {
+            doc.line(tx(pts[i][0]), ty(pts[i][1]), tx(pts[i + 1][0]), ty(pts[i + 1][1]));
+          }
+        });
+
+        // 5. Encabezado técnico y regla de verificación 50 mm
+        doc.setTextColor(68, 64, 60);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        const sideTitle = side === 'A' ? 'PÁG. 1 · LADO A (CAJA + TAPA)' : 'PÁG. 2 · LADO B (BOLSILLO ESPEJADO — DOBLE CARA)';
+        doc.text(`CAJA FLIP-TOP STUDIO — ${sideTitle}`, 10, 9);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text(`Hoja: ${paper.label} | Escala REAL 1:1 (Imprimir al 100%, SIN ajustar a página) | Sangrado: ${bleed} mm`, 10, 13.5);
+
+        // Regla 50 mm en esquina superior derecha
+        const rx = paper.w - 60, ry = 10;
+        doc.setDrawColor(28, 25, 23);
+        doc.setLineWidth(0.4);
+        doc.line(rx, ry, rx + 50, ry);
+        doc.line(rx, ry - 1.8, rx, ry + 1.8);
+        doc.line(rx + 50, ry - 1.8, rx + 50, ry + 1.8);
+        doc.setFontSize(7);
+        doc.text('Verificación 1:1 = 50 mm', rx + 25, ry + 4, { align: 'center' });
+
+        if (includeLabels) {
+          doc.setFontSize(6.5);
+          doc.setTextColor(120, 113, 108);
+          doc.text('ESPALDA (A)', tx(W / 2), ty(-H_hinge / 2), { align: 'center' });
+          doc.text('FRENTE (A)', tx(-D - W / 2), ty(-H_front / 2), { align: 'center' });
+          doc.text('BASE (A)', tx(W / 2), ty(D / 2), { align: 'center' });
+          doc.text('TECHO TAPA', tx(W / 2), ty(lidRoofY + D / 2), { align: 'center' });
+          doc.text('FRENTE TAPA', tx(W / 2), ty(lidFrontY + H_lid_front / 2), { align: 'center' });
+          doc.setTextColor(194, 65, 12);
+          doc.text('BOLS. FRENTE (B)', tx(px0 + Lw / 2), ty(-Lh / 2), { align: 'center' });
+          doc.text('BOLS. EXT (B)', tx(px1 + D / 2), ty(-Lh / 2), { align: 'center' });
+          doc.text('BOLS. ESP (B)', tx(px2 + Lw / 2), ty(-Lh / 2), { align: 'center' });
+        }
+      };
+
+      renderPage('A', true);
+      if (duplex) renderPage('B', false);
+
+      const fname = duplex
+        ? `caja_fliptop_${paperKey}_doble_cara_1a1.pdf`
+        : `caja_fliptop_${paperKey}_ladoA_1a1.pdf`;
+      doc.save(fname);
+      showToast(`PDF listo: ${fname}`);
+    }
+
+    /**
+     * ============================================================================
      * 10. ESCENA 3D, MODO OSCURO Y CÁMARA ORBITAL
      * ============================================================================
      */
@@ -3059,9 +3264,8 @@
         });
       }
 
-      // Eventos del Modal Diseños y botón rápido Skins
+      // Eventos del Modal Diseños
       const designsModal = document.getElementById('designs-modal');
-      document.getElementById('quick-skin-btn').onclick = () => loadSkinPack('skins/celestial/skin.json');
       document.getElementById('open-designs-btn').onclick = () => {
         designsModal.classList.remove('hidden');
         renderSavedDesignsGrid();
@@ -3254,7 +3458,9 @@
       };
       document.getElementById('labels-layer').style.display = 'none';
 
-      // Exportación
+      // Exportación PDF y SVG
+      document.getElementById('download-pdf-duplex').onclick = () => generateAndDownloadPDF(true);
+      document.getElementById('download-pdf-a').onclick = () => generateAndDownloadPDF(false);
       document.getElementById('download-svg-a').onclick = () => generateAndDownloadSVG('A');
       document.getElementById('download-svg-b').onclick = () => generateAndDownloadSVG('B');
       document.getElementById('download-svg-clean').onclick = () => generateAndDownloadSVG('clean');

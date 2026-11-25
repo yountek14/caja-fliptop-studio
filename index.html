@@ -124,6 +124,12 @@
 
     <!-- Acciones rápidas -->
     <div class="flex items-center gap-1.5">
+      <button id="quick-skin-btn" title="Cargar Skin Celestial (13 caras a medida) en 1 clic"
+        class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-[#caa368]/60 bg-[#1a242e] hover:bg-[#243240] text-[#f0d6a7] shadow-sm transition">
+        <span>🌙</span>
+        <span>Skins</span>
+      </button>
+
       <button id="open-designs-btn" title="Abrir biblioteca de diseños guardados y presets"
         class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-amber-600/15 dark:bg-amber-500/20 hover:bg-amber-600/25 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 transition">
         <span>🎨</span>
@@ -3053,8 +3059,9 @@
         });
       }
 
-      // Eventos del Modal Diseños
+      // Eventos del Modal Diseños y botón rápido Skins
       const designsModal = document.getElementById('designs-modal');
+      document.getElementById('quick-skin-btn').onclick = () => loadSkinPack('skins/celestial/skin.json');
       document.getElementById('open-designs-btn').onclick = () => {
         designsModal.classList.remove('hidden');
         renderSavedDesignsGrid();

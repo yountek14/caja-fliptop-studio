@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Caja Flip-Top + Encendedor — Plantilla y Diseño</title>
+  <!-- Tailwind CSS para interfaz moderna y responsiva -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Fuente Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overflow: hidden;
+      background-color: #f3ede4;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+    }
+
+    /* Sliders personalizados estilo taller */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 9999px;
+      background: #e2d9cc;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #8c5a2b;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #8c5a2b;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+    }
+
+    /* Etiquetas flotantes proyectadas desde 3D */
+    .label-3d {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+    }
+
+    /* Scrollbar sutil en panel */
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(140, 90, 43, 0.25);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="text-stone-800">
+
+  <!-- Contenedor WebGL -->
+  <div id="canvas-container"></div>
+
+  <!-- Capa de etiquetas 3D proyectadas -->
+  <div id="labels-layer" class="fixed inset-0 pointer-events-none overflow-hidden z-10"></div>
+
+  <!-- Encabezado flotante superior izquierdo -->
+  <header class="fixed top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none max-w-[calc(100vw-80px)]">
+    <div class="pointer-events-auto inline-flex items-center gap-3 bg-white/85 backdrop-blur-md border border-stone-200/80 shadow-lg rounded-2xl px-4 py-2.5">
+      <div class="w-9 h-9 rounded-xl bg-amber-800/10 border border-amber-800/20 flex items-center justify-center text-amber-900 shrink-0">
+        <!-- Icono caja 3D -->
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-base font-bold text-stone-900 leading-tight">Caja Flip-Top + Encendedor</h1>
+        <p class="text-[11px] sm:text-xs text-stone-500">Diseño de una sola pieza · Escala real en mm</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Botón para colapsar/expandir panel en móviles -->
+  <button id="toggle-panel-btn"
+    class="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 lg:hidden bg-white/90 backdrop-blur-md border border-stone-200 shadow-lg rounded-xl p-2.5 text-stone-700 hover:bg-stone-50 active:scale-95 transition"
+    title="Mostrar/Ocultar controles">
+    <svg id="toggle-panel-icon" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+    </svg>
+  </button>
+
+  <!-- Panel de Control Flotante -->
+  <aside id="control-panel"
+    class="fixed bottom-3 left-3 right-3 sm:left-auto sm:top-4 sm:right-4 sm:bottom-auto sm:w-80 z-20 bg-white/88 backdrop-blur-md border border-stone-200/90 shadow-xl rounded-2xl p-4 max-h-[70vh] sm:max-h-[calc(100vh-32px)] overflow-y-auto custom-scroll transition-all duration-300">
+
+    <!-- Sección 1: Armado y Despliegue -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between mb-1.5">
+        <label for="fold-slider" class="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          Paso 1 · Plantilla / Armado
+        </label>
+        <span id="fold-percent" class="text-xs font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">0%</span>
+      </div>
+      <input id="fold-slider" type="range" min="0" max="100" step="0.2" value="0" class="w-full mb-2.5" />
+
+      <!-- Indicador de etapa actual -->
+      <div id="stage-indicator" class="text-[11px] text-stone-500 mb-3 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+        <span>Caja armada y lista para usar</span>
+      </div>
+
+      <!-- Botones de reproducción y estados rápidos -->
+      <div class="grid grid-cols-3 gap-2">
+        <button id="play-btn"
+          class="flex items-center justify-center gap-1.5 bg-amber-800 hover:bg-amber-900 text-white text-xs font-semibold py-2 px-2.5 rounded-xl shadow-sm active:scale-95 transition">
+          <svg id="play-icon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <span id="play-text">Animar</span>
+        </button>
+        <button id="flat-btn"
+          class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold py-2 px-2.5 rounded-xl border border-stone-200 active:scale-95 transition">
+          Plano 2D
+        </button>
+        <button id="assembled-btn"
+          class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold py-2 px-2.5 rounded-xl border border-stone-200 active:scale-95 transition">
+          Armado 3D
+        </button>
+      </div>
+<div class="mt-3">
+        <div class="flex items-center justify-between mb-1">
+          <label for="speed-slider" class="text-xs font-semibold uppercase tracking-wider text-stone-600">Velocidad</label>
+          <span id="speed-label" class="text-xs font-bold text-stone-700">1× · 4,2 s</span>
+        </div>
+        <input id="speed-slider" type="range" min="25" max="300" step="25" value="100" class="w-full" />
+      </div>
+    </div>
+
+    <hr class="border-stone-200/80 my-3.5" />
+
+    <!-- Sección 2: Apertura de Tapa -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between mb-1.5">
+        <label for="lid-slider" class="text-xs font-semibold uppercase tracking-wider text-stone-600">
+          Abrir / Cerrar Tapa
+        </label>
+        <span id="lid-angle-label" class="text-xs font-bold text-stone-700">0°</span>
+      </div>
+      <input id="lid-slider" type="range" min="0" max="110" step="1" value="0" class="w-full" />
+    </div>
+
+    <hr class="border-stone-200/80 my-3.5" />
+
+    <!-- Sección 3: Vistas de Cámara -->
+    <div class="mb-4">
+      <span class="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-2">Cámara Rápida</span>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="cam-3d-btn"
+          class="flex items-center justify-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium py-2 px-3 rounded-xl border border-stone-200 active:scale-95 transition">
+          <span>Perspectiva 3D</span>
+        </button>
+        <button id="cam-top-btn"
+          class="flex items-center justify-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium py-2 px-3 rounded-xl border border-stone-200 active:scale-95 transition">
+          <span>Vista Cenital 2D</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sección 4: Opciones de visualización -->
+    <div class="space-y-2.5 mb-4">
+      <label class="flex items-center justify-between cursor-pointer group">
+        <span class="text-xs font-medium text-stone-700 group-hover:text-stone-900">Mostrar Encendedor 3D</span>
+        <input id="toggle-lighter" type="checkbox" checked class="w-4 h-4 accent-amber-800 rounded cursor-pointer" />
+      </label>
+      <label class="flex items-center justify-between cursor-pointer group">
+        <span class="text-xs font-medium text-stone-700 group-hover:text-stone-900">Etiquetas y Leyenda</span>
+        <input id="toggle-labels" type="checkbox" checked class="w-4 h-4 accent-amber-800 rounded cursor-pointer" />
+      </label>
+    </div>
+
+    <div id="design-box" class="bg-amber-50/80 border border-amber-200 rounded-xl p-2.5 mb-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">Paso 2 · Diseño</div>
+      <p class="text-[11px] text-stone-500 mb-2">Sube una imagen para todas las caras o una por cara. Al subir, la caja se arma sola.</p>
+      <div class="flex gap-1.5 mb-2">
+        <label class="flex-1 text-center cursor-pointer text-[11px] font-semibold bg-amber-800 hover:bg-amber-900 text-white rounded-lg py-1.5">Una imagen para todas las caras<input id="design-all" type="file" accept="image/*" class="hidden"></label>
+        <button id="design-clear" class="text-[11px] font-medium bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg px-2">Quitar todo</button>
+      </div>
+      <div id="design-list" class="space-y-1.5 mb-3"></div>
+      <div class="border-t border-amber-200 pt-2">
+        <div class="text-[11px] font-semibold text-stone-600 mb-1">Ajustar imagen</div>
+        <select id="design-sel" class="w-full text-[11px] border border-stone-200 rounded-lg p-1 mb-2 bg-white"></select>
+        <canvas id="design-prev" class="w-full rounded-lg border border-stone-200 bg-white mb-1" style="max-height:170px;object-fit:contain"></canvas>
+        <p class="text-[10px] text-stone-400 mb-2">Vista previa: así se ve la cara armada.</p>
+        <div class="flex gap-1 mb-2 text-xs">
+          <button id="d-rotl" class="flex-1 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-md py-1" title="Girar a la izquierda">↺ 90°</button>
+          <button id="d-rotr" class="flex-1 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-md py-1" title="Girar a la derecha">↻ 90°</button>
+          <button id="d-fh" class="flex-1 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-md py-1" title="Espejar horizontal">⇋</button>
+          <button id="d-fv" class="flex-1 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-md py-1" title="Espejar vertical">⇅</button>
+        </div>
+        <label class="block text-[11px] text-stone-600">Zoom <span id="d-zoom-v">100%</span><input id="d-zoom" type="range" min="100" max="300" value="100" class="w-full"></label>
+        <label class="block text-[11px] text-stone-600">Mover horizontal <span id="d-ox-v">0</span><input id="d-ox" type="range" min="-50" max="50" value="0" class="w-full"></label>
+        <label class="block text-[11px] text-stone-600">Mover vertical <span id="d-oy-v">0</span><input id="d-oy" type="range" min="-50" max="50" value="0" class="w-full"></label>
+        <button id="d-reset" class="mt-1 w-full text-[11px] bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg py-1">Restablecer ajustes</button>
+      </div>
+    </div>
+    <!-- Leyenda de líneas de recorte y doblez -->
+    <div id="legend-box" class="bg-stone-50/90 border border-stone-200/80 rounded-xl p-2.5 mb-4 text-[11px] space-y-1.5">
+      <div class="font-semibold text-stone-700 mb-1">Código de Plantilla:</div>
+      <div class="flex items-center gap-2">
+        <span class="w-6 h-0.5 bg-stone-900 inline-block shrink-0"></span>
+        <span class="text-stone-600">Línea de corte continuo</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-6 border-t-2 border-dashed border-blue-600 inline-block shrink-0"></span>
+        <span class="text-stone-600">Doblez Valle (+90° hacia adentro)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-6 border-t-2 border-dashed border-orange-600 inline-block shrink-0"></span>
+        <span class="text-stone-600">Doblez Montaña (-90° inverso bolsillo)</span>
+      </div>
+    </div>
+
+    <!-- Botón de Descarga SVG -->
+    <button id="download-svg-btn"
+      class="w-full flex items-center justify-center gap-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-md active:scale-[0.98] transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+      </svg>
+      <span>Descargar Plantilla SVG (1:1 mm)</span>
+    </button>
+
+    <!-- Medidas resumen -->
+    <div class="mt-3 pt-2.5 border-t border-stone-200/70 flex justify-between text-[10px] text-stone-500">
+      <span>Caja: 55×24×88 mm</span>
+      <span>Bolsillo J6: 27×24×83 mm</span>
+    </div>
+  </aside>
+
+  <!-- Toast de notificación (sin usar alert) -->
+  <div id="toast"
+    class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-xl opacity-0 pointer-events-none transition-all duration-300 translate-y-2">
+    Plantilla SVG descargada correctamente
+  </div>
+
+  <!-- Ayuda de interacción inferior izquierda -->
+  <div class="hidden sm:flex fixed bottom-4 left-4 z-10 items-center gap-3 bg-white/75 backdrop-blur-sm border border-stone-200/70 rounded-xl px-3 py-1.5 text-[11px] text-stone-600 pointer-events-none">
+    <span>🖱️ Arrastrar: Rotar</span>
+    <span>·</span>
+    <span>Scroll / Pellizco: Zoom</span>
+    <span>·</span>
+    <span>Clic derecho: Mover</span>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * CONFIGURACIÓN GEOMÉTRICA EXACTA (EN MILÍMETROS)
+     * 1 unidad Three.js = 1 mm
+     * ============================================================================
+     */
+    window.FP = {};
+    const DIM = {
+      W: 55,           // Ancho caja principal
+      D: 24,           // Profundidad caja principal y bolsillo
+      H: 88,           // Altura total caja armada
+      H_front: 62,     // Altura frente del cuerpo
+      H_hinge: 66,     // Altura bisagra trasera del cuerpo
+      get H_lid_back() { return this.H - this.H_hinge; },   // 22 mm
+      get H_lid_front() { return this.H - this.H_front; },  // 26 mm
+      Lw: 27,          // BIC J6: lado ancho 25.5 + holgura
+      Ld: 24,          // Profundidad compartimento encendedor (= D)
+      Lh: 83,          // BIC J6: alto 81 + holgura
+      T_base: 10,      // Pestaña de cierre de la base
+      T_side_base: 14, // Solapas inferiores de los costados
+      T_glue: 10,      // Pestañas de pegado verticales (cuerpo y bolsillo)
+      T_pflap: 8,      // Solapas de sujeción de la base del bolsillo (delante y detrás)
+      T_lid_glue: 8,   // Pestañas de pegado de los costados de la tapa
+      chamfer: 3       // Chaflán estético y funcional en pestañas
+    };
+
+    // Estado global de la aplicación
+    const state = {
+      fold: 0.0,            // 0 = plano 2D, 1 = armado 3D
+      lidOpen: 0.0,         // 0 a 110 grados
+      isPlaying: false,
+      speed: 1,             // multiplicador de velocidad (0.25x a 3x)
+      playDirection: -1,    // Si inicia en 100%, al dar play despliega y vuelve a armar
+      showLighter: true,
+      showLabels: true,
+      panelOpenMobile: true
+    };
+
+    // Variables globales de Three.js
+    let scene, camera, renderer;
+    let rootAssembly, rootPivot;
+    let hinges = {};
+    let lighterGroup;
+    let labelAnchors = [];
+
+    // Control orbital personalizado (soporta mouse y táctil con suavizado)
+    const orbit = {
+      theta: 0.58,
+      phi: 1.12,
+      radius: 215,
+      target: new THREE.Vector3(8, 42, 12),
+      desiredTheta: 0.58,
+      desiredPhi: 1.12,
+      desiredRadius: 215,
+      desiredTarget: new THREE.Vector3(8, 42, 12),
+      isDragging: false,
+      isPanning: false,
+      lastX: 0,
+      lastY: 0,
+      lastPinchDist: 0
+    };
+
+    /**
+     * ============================================================================
+     * TEXTURAS PROCEDURALES DE CARTÓN KRAFT (SIN URLS EXTERNAS)
+     * ============================================================================
+     */
+    function createKraftTexture(baseHex, grainColorHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = baseHex;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Ruido sutil de pulpa de papel
+      for (let i = 0; i < 9000; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const alpha = Math.random() * 0.08;
+        ctx.fillStyle = Math.random() > 0.5 ? `rgba(90, 55, 25, ${alpha})` : `rgba(255, 240, 220, ${alpha})`;
+        ctx.fillRect(x, y, Math.random() * 2.5 + 0.5, Math.random() * 2.5 + 0.5);
+      }
+
+      // Fibras finas de cartón kraft
+      ctx.strokeStyle = grainColorHex;
+      for (let i = 0; i < 450; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const len = Math.random() * 14 + 4;
+        const angle = (Math.random() - 0.5) * 0.4;
+        ctx.globalAlpha = Math.random() * 0.12 + 0.03;
+        ctx.lineWidth = Math.random() * 1.1 + 0.3;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(0.02, 0.02);
+      return texture;
+    }
+
+    /**
+     * ============================================================================
+     * UTILIDADES DE CONSTRUCCIÓN DE PANELES 3D Y LÍNEAS
+     * ============================================================================
+     */
+    const matOuter = new THREE.MeshStandardMaterial({
+      color: 0xd9ab7e,
+      map: createKraftTexture('#d4a373', '#9c6e42'),
+      roughness: 0.85,
+      metalness: 0.02,
+      side: THREE.FrontSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
+
+    const matInner = new THREE.MeshStandardMaterial({
+      color: 0xc99768,
+      map: createKraftTexture('#c59262', '#8a5d34'),
+      roughness: 0.9,
+      metalness: 0.01,
+      side: THREE.FrontSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
+
+    const matCutLine = new THREE.LineBasicMaterial({ color: 0x1c1917, linewidth: 1 });
+    const matValleyLine = new THREE.LineDashedMaterial({
+      color: 0x2563eb,
+      dashSize: 3.2,
+      gapSize: 2.0
+    });
+    const matMountainLine = new THREE.LineDashedMaterial({
+      color: 0xea580c,
+      dashSize: 3.2,
+      gapSize: 2.0
+    });
+
+    /**
+     * Crea un panel plano de cartón con espesor visual realista (doble cara con
+     * micro-separación para evitar z-fighting) y bordes de corte/doblez.
+     * Los puntos 2D están en el plano XZ: [ [x, z], ... ]
+     * Cara +Y = interior (valle), Cara -Y = exterior.
+     */
+    function createPanel(pointsXZ, creaseSegments = [], yOffset = 0) {
+      const group = new THREE.Group();
+      const shape = new THREE.Shape();
+      // Mapeamos (x, z) -> Shape(x, -z) y luego rotamos -90° en X para volver a XZ
+      pointsXZ.forEach(([x, z], idx) => {
+        if (idx === 0) shape.moveTo(x, -z);
+        else shape.lineTo(x, -z);
+      });
+      shape.closePath();
+
+      const geo = new THREE.ShapeGeometry(shape);
+      const halfThick = 0.22; // ~0.44mm de espesor de cartón kraft
+
+      // Cara interior (+Y)
+      const innerMesh = new THREE.Mesh(geo, matInner);
+      innerMesh.rotation.x = -Math.PI / 2;
+      innerMesh.position.y = halfThick + yOffset;
+      innerMesh.castShadow = true;
+      innerMesh.receiveShadow = true;
+      group.add(innerMesh);
+
+      // Cara exterior (-Y)
+      const outerMesh = new THREE.Mesh(geo, matOuter);
+      outerMesh.rotation.x = Math.PI / 2;
+      outerMesh.scale.y = -1; // Corrige orientación del shape invertido
+      outerMesh.position.y = -halfThick + yOffset;
+      outerMesh.castShadow = true;
+      outerMesh.receiveShadow = true;
+      group.add(outerMesh);
+      group.userData.outer = outerMesh;
+
+      // Identificar aristas de corte vs aristas de doblez
+      const isCreaseEdge = (p1, p2) => {
+        return creaseSegments.some(seg => {
+          const [a, b] = seg.pts;
+          const matchForward =
+            Math.hypot(p1[0] - a[0], p1[1] - a[1]) < 0.1 &&
+            Math.hypot(p2[0] - b[0], p2[1] - b[1]) < 0.1;
+          const matchReverse =
+            Math.hypot(p1[0] - b[0], p1[1] - b[1]) < 0.1 &&
+            Math.hypot(p2[0] - a[0], p2[1] - a[1]) < 0.1;
+          return matchForward || matchReverse;
+        });
+      };
+
+      // Dibujar bordes de corte en ambas caras
+      for (let i = 0; i < pointsXZ.length; i++) {
+        const p1 = pointsXZ[i];
+        const p2 = pointsXZ[(i + 1) % pointsXZ.length];
+        if (!isCreaseEdge(p1, p2)) {
+          [halfThick + 0.08 + yOffset, -halfThick - 0.08 + yOffset].forEach(yy => {
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(p1[0], yy, p1[1]),
+              new THREE.Vector3(p2[0], yy, p2[1])
+            ]);
+            group.add(new THREE.Line(lineGeo, matCutLine));
+          });
+        }
+      }
+
+      // Dibujar líneas de doblez (valle = azul, montaña = naranja) en ambas caras
+      creaseSegments.forEach(seg => {
+        const [a, b] = seg.pts;
+        const mat = seg.type === 'mountain' ? matMountainLine : matValleyLine;
+        [halfThick + 0.12 + yOffset, -halfThick - 0.12 + yOffset].forEach(yy => {
+          const lineGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(a[0], yy, a[1]),
+            new THREE.Vector3(b[0], yy, b[1])
+          ]);
+          const line = new THREE.Line(lineGeo, mat);
+          line.computeLineDistances();
+          group.add(line);
+        });
+      });
+
+      return group;
+    }
+
+    /**
+     * Registra un ancla para mostrar etiquetas flotantes HTML sobre paneles 3D.
+     */
+    function addLabelAnchor(parent, x, y, z, text, badgeType = 'default') {
+      const anchor = new THREE.Object3D();
+      anchor.position.set(x, y, z);
+      parent.add(anchor);
+
+      const el = document.createElement('div');
+      let styleClass = 'bg-white/90 text-stone-800 border-stone-300';
+      if (badgeType === 'mountain') {
+        styleClass = 'bg-orange-50/95 text-orange-900 border-orange-300';
+      } else if (badgeType === 'valley') {
+        styleClass = 'bg-blue-50/95 text-blue-900 border-blue-300';
+      }
+      el.className = `label-3d text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-sm ${styleClass}`;
+      el.textContent = text;
+      document.getElementById('labels-layer').appendChild(el);
+
+      labelAnchors.push({ anchor, el });
+    }
+
+    /**
+     * ============================================================================
+     * CONSTRUCCIÓN DE LA JERARQUÍA EXACTA DE LA CAJA
+     * ============================================================================
+     */
+    function buildBoxHierarchy() {
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer } = DIM;
+      const diffH = H_hinge - H_front; // 4 mm (pendiente de la tapa)
+
+      rootAssembly = new THREE.Group();
+      scene.add(rootAssembly);
+
+      // Pivote maestro que permite acostar la caja en 2D o levantarla de pie en 3D
+      rootPivot = new THREE.Group();
+      rootAssembly.add(rootPivot);
+
+      // =========================================================================
+      // 0. PANEL RAÍZ: Espalda Cuerpo (W x H_hinge) -> x:[0, W], z:[-H_hinge, 0]
+      // =========================================================================
+      const backBody = window.FP.back = createPanel(
+        [[0, 0], [W, 0], [W, -H_hinge], [0, -H_hinge]],
+        [
+          { pts: [[0, 0], [W, 0]], type: 'valley' },
+          { pts: [[0, 0], [0, -H_hinge]], type: 'valley' },
+          { pts: [[W, 0], [W, -H_hinge]], type: 'valley' },
+          { pts: [[0, -H_hinge], [W, -H_hinge]], type: 'valley' }
+        ]
+      );
+      rootPivot.add(backBody);
+      addLabelAnchor(backBody, W / 2, 1, -H_hinge / 2, 'Espalda Cuerpo');
+
+      // =========================================================================
+      // 1. RAMA INFERIOR: Base + Pestaña Base (desde z = 0)
+      // =========================================================================
+      const basePivot = new THREE.Group();
+      basePivot.position.set(0, 0, 0);
+      rootPivot.add(basePivot);
+      hinges.base = basePivot;
+
+      const basePanel = createPanel(
+        [[0, 0], [W, 0], [W, D], [0, D]],
+        [
+          { pts: [[0, 0], [W, 0]], type: 'valley' },
+          { pts: [[0, D], [W, D]], type: 'valley' }
+        ],
+        0.15 // micro-offset para evitar z-fighting con solapas laterales
+      );
+      basePivot.add(basePanel);
+      addLabelAnchor(basePanel, W / 2, 1, D / 2, 'Base');
+
+      const baseTabPivot = new THREE.Group();
+      baseTabPivot.position.set(0, 0, D);
+      basePivot.add(baseTabPivot);
+      hinges.baseTab = baseTabPivot;
+
+      const baseTabPanel = createPanel(
+        [[0, 0], [W, 0], [W - chamfer, T_base], [chamfer, T_base]],
+        [{ pts: [[0, 0], [W, 0]], type: 'valley' }],
+        0.35
+      );
+      baseTabPivot.add(baseTabPanel);
+
+      // =========================================================================
+      // 2. RAMA IZQUIERDA: Costado Izq + Solapa Base Izq + Frente Cuerpo + Pestaña
+      // =========================================================================
+      const leftSidePivot = new THREE.Group();
+      leftSidePivot.position.set(0, 0, 0);
+      rootPivot.add(leftSidePivot);
+      hinges.leftSide = leftSidePivot;
+
+      const leftSidePanel = window.FP.left = createPanel(
+        [[0, 0], [0, -H_hinge], [-D, -H_front], [-D, 0]],
+        [
+          { pts: [[0, 0], [0, -H_hinge]], type: 'valley' },
+          { pts: [[-D, 0], [0, 0]], type: 'valley' },
+          { pts: [[-D, 0], [-D, -H_front]], type: 'valley' }
+        ]
+      );
+      leftSidePivot.add(leftSidePanel);
+
+      // Solapa Base Izquierda
+      const leftBaseFlapPivot = new THREE.Group();
+      leftBaseFlapPivot.position.set(0, 0, 0);
+      leftSidePivot.add(leftBaseFlapPivot);
+      hinges.leftBaseFlap = leftBaseFlapPivot;
+
+      const leftBaseFlapPanel = createPanel(
+        [[-D, 0], [0, 0], [-chamfer, T_side_base], [-D + chamfer, T_side_base]],
+        [{ pts: [[-D, 0], [0, 0]], type: 'valley' }],
+        0.0
+      );
+      leftBaseFlapPivot.add(leftBaseFlapPanel);
+
+      // Frente Cuerpo
+      const frontBodyPivot = new THREE.Group();
+      frontBodyPivot.position.set(-D, 0, 0);
+      leftSidePivot.add(frontBodyPivot);
+      hinges.frontBody = frontBodyPivot;
+
+      const frontBodyPanel = window.FP.front = createPanel(
+        [[0, 0], [0, -H_front], [-W, -H_front], [-W, 0]],
+        [
+          { pts: [[0, 0], [0, -H_front]], type: 'valley' },
+          { pts: [[-W, 0], [-W, -H_front]], type: 'valley' }
+        ]
+      );
+      frontBodyPivot.add(frontBodyPanel);
+      addLabelAnchor(frontBodyPanel, -W / 2, 1, -H_front / 2, 'Frente Cuerpo');
+
+      // Pestaña Pegado Cuerpo
+      const bodyGluePivot = new THREE.Group();
+      bodyGluePivot.position.set(-W, 0, 0);
+      frontBodyPivot.add(bodyGluePivot);
+      hinges.bodyGlue = bodyGluePivot;
+
+      const bodyGluePanel = createPanel(
+        [[0, 0], [0, -H_front], [-T_glue, -H_front + chamfer], [-T_glue, -chamfer]],
+        [{ pts: [[0, 0], [0, -H_front]], type: 'valley' }],
+        0.35
+      );
+      bodyGluePivot.add(bodyGluePanel);
+
+      // =========================================================================
+      // 3. RAMA SUPERIOR (TAPA ABATIBLE): Espalda Tapa + Costados + Techo + Frente
+      // =========================================================================
+      const lidBackPivot = new THREE.Group();
+      lidBackPivot.position.set(0, 0, -H_hinge);
+      rootPivot.add(lidBackPivot);
+      hinges.lidBack = lidBackPivot;
+
+      const lidBackPanel = createPanel(
+        [[0, 0], [W, 0], [W, -H_lid_back], [0, -H_lid_back]],
+        [
+          { pts: [[0, 0], [W, 0]], type: 'valley' },
+          { pts: [[0, 0], [0, -H_lid_back]], type: 'valley' },
+          { pts: [[W, 0], [W, -H_lid_back]], type: 'valley' },
+          { pts: [[0, -H_lid_back], [W, -H_lid_back]], type: 'valley' }
+        ]
+      );
+      lidBackPivot.add(lidBackPanel);
+
+      // Costado Izquierdo Tapa (trapecio complementario)
+      const lidLeftPivot = new THREE.Group();
+      lidLeftPivot.position.set(0, 0, 0);
+      lidBackPivot.add(lidLeftPivot);
+      hinges.lidLeft = lidLeftPivot;
+
+      const lidLeftPanel = createPanel(
+        [[0, 0], [0, -H_lid_back], [-D, -H_lid_back], [-D, diffH]],
+        [
+          { pts: [[0, 0], [0, -H_lid_back]], type: 'valley' },
+          { pts: [[-D, -H_lid_back], [-D, diffH]], type: 'valley' }
+        ],
+        0.15
+      );
+      lidLeftPivot.add(lidLeftPanel);
+
+      // Pestaña pegado Costado Izquierdo Tapa
+      const lidLeftGluePivot = new THREE.Group();
+      lidLeftGluePivot.position.set(-D, 0, 0);
+      lidLeftPivot.add(lidLeftGluePivot);
+      hinges.lidLeftGlue = lidLeftGluePivot;
+
+      const lidLeftGluePanel = createPanel(
+        [[0, diffH], [0, -H_lid_back], [-T_lid_glue, -H_lid_back + chamfer], [-T_lid_glue, diffH - chamfer]],
+        [{ pts: [[0, diffH], [0, -H_lid_back]], type: 'valley' }],
+        0.4
+      );
+      lidLeftGluePivot.add(lidLeftGluePanel);
+
+      // Costado Derecho Tapa (trapecio complementario)
+      const lidRightPivot = new THREE.Group();
+      lidRightPivot.position.set(W, 0, 0);
+      lidBackPivot.add(lidRightPivot);
+      hinges.lidRight = lidRightPivot;
+
+      const lidRightPanel = createPanel(
+        [[0, 0], [D, diffH], [D, -H_lid_back], [0, -H_lid_back]],
+        [
+          { pts: [[0, 0], [0, -H_lid_back]], type: 'valley' },
+          { pts: [[D, diffH], [D, -H_lid_back]], type: 'valley' }
+        ],
+        0.15
+      );
+      lidRightPivot.add(lidRightPanel);
+
+      // Pestaña pegado Costado Derecho Tapa
+      const lidRightGluePivot = new THREE.Group();
+      lidRightGluePivot.position.set(D, 0, 0);
+      lidRightPivot.add(lidRightGluePivot);
+      hinges.lidRightGlue = lidRightGluePivot;
+
+      const lidRightGluePanel = createPanel(
+        [[0, diffH], [T_lid_glue, diffH - chamfer], [T_lid_glue, -H_lid_back + chamfer], [0, -H_lid_back]],
+        [{ pts: [[0, diffH], [0, -H_lid_back]], type: 'valley' }],
+        0.4
+      );
+      lidRightGluePivot.add(lidRightGluePanel);
+
+      // Techo Tapa
+      const lidTopPivot = new THREE.Group();
+      lidTopPivot.position.set(0, 0, -H_lid_back);
+      lidBackPivot.add(lidTopPivot);
+      hinges.lidTop = lidTopPivot;
+
+      const lidTopPanel = window.FP.top = createPanel(
+        [[0, 0], [W, 0], [W, -D], [0, -D]],
+        [
+          { pts: [[0, 0], [W, 0]], type: 'valley' },
+          { pts: [[0, -D], [W, -D]], type: 'valley' }
+        ],
+        0.0
+      );
+      lidTopPivot.add(lidTopPanel);
+      addLabelAnchor(lidTopPanel, W / 2, 1, -D / 2, 'Tapa Abatible');
+
+      // Frente Tapa
+      const lidFrontPivot = new THREE.Group();
+      lidFrontPivot.position.set(0, 0, -D);
+      lidTopPivot.add(lidFrontPivot);
+      hinges.lidFront = lidFrontPivot;
+
+      const lidFrontPanel = window.FP.lidFront = createPanel(
+        [[0, 0], [W, 0], [W, -H_lid_front], [0, -H_lid_front]],
+        [{ pts: [[0, 0], [W, 0]], type: 'valley' }],
+        -0.12 // ligeramente por fuera de las pestañas de tapa
+      );
+      lidFrontPivot.add(lidFrontPanel);
+
+      // =========================================================================
+      // 4. RAMA DERECHA + COMPARTIMENTO DE ENCENDEDOR (DOBLECES DE MONTAÑA -90°)
+      // =========================================================================
+      const rightSidePivot = new THREE.Group();
+      rightSidePivot.position.set(W, 0, 0);
+      rootPivot.add(rightSidePivot);
+      hinges.rightSide = rightSidePivot;
+
+      const rightSidePanel = window.FP.right = createPanel(
+        [[0, 0], [D, 0], [D, -H_front], [0, -H_hinge]],
+        [
+          { pts: [[0, 0], [0, -H_hinge]], type: 'valley' },
+          { pts: [[0, 0], [D, 0]], type: 'valley' },
+          { pts: [[D, 0], [D, -H_front]], type: 'mountain' } // Bisagra inversa del bolsillo
+        ]
+      );
+      rightSidePivot.add(rightSidePanel);
+
+      // Solapa Base Derecha
+      const rightBaseFlapPivot = new THREE.Group();
+      rightBaseFlapPivot.position.set(0, 0, 0);
+      rightSidePivot.add(rightBaseFlapPivot);
+      hinges.rightBaseFlap = rightBaseFlapPivot;
+
+      const rightBaseFlapPanel = createPanel(
+        [[0, 0], [D, 0], [D - chamfer, T_side_base], [chamfer, T_side_base]],
+        [{ pts: [[0, 0], [D, 0]], type: 'valley' }],
+        0.0
+      );
+      rightBaseFlapPivot.add(rightBaseFlapPanel);
+
+      // --- INICIO COMPARTIMENTO ENCENDEDOR (MONTAÑA -90°) ---
+      // Frente Bolsillo (Lw x Lh)
+      const pocketFrontPivot = new THREE.Group();
+      pocketFrontPivot.position.set(D, 0, 0);
+      rightSidePivot.add(pocketFrontPivot);
+      hinges.pocketFront = pocketFrontPivot;
+
+      const pocketFrontPanel = createPanel(
+        [[0, 0], [Lw, 0], [Lw, -Lh], [T_lid_glue + 1, -Lh], [T_lid_glue + 1, -(H_front - 1)], [0, -(H_front - 1)]],
+        [
+          { pts: [[0, 0], [0, -(H_front - 1)]], type: 'mountain' },
+          { pts: [[Lw, 0], [Lw, -Lh]], type: 'mountain' }
+        ]
+      );
+      pocketFrontPivot.add(pocketFrontPanel);
+      addLabelAnchor(pocketFrontPanel, Lw / 2, 1, -Lh / 2, 'Bolsillo (Montaña -90°)', 'mountain');
+
+      // Costado Exterior Bolsillo (D x Lh)
+      const pocketOuterPivot = new THREE.Group();
+      pocketOuterPivot.position.set(Lw, 0, 0);
+      pocketFrontPivot.add(pocketOuterPivot);
+      hinges.pocketOuter = pocketOuterPivot;
+
+      const pocketOuterPanel = createPanel(
+        [[0, 0], [D, 0], [D, -Lh], [0, -Lh]],
+        [
+          { pts: [[0, 0], [0, -Lh]], type: 'mountain' },
+          { pts: [[D, 0], [D, -Lh]], type: 'mountain' },
+          { pts: [[0, 0], [D, 0]], type: 'mountain' }
+        ]
+      );
+      pocketOuterPivot.add(pocketOuterPanel);
+
+      // Base Bolsillo (D x Lw)
+      const pocketBasePivot = new THREE.Group();
+      pocketBasePivot.position.set(0, 0, 0);
+      pocketOuterPivot.add(pocketBasePivot);
+      hinges.pocketBase = pocketBasePivot;
+
+      const pocketBasePanel = createPanel(
+        [[0, 0], [D, 0], [D, Lw], [0, Lw]],
+        [
+          { pts: [[0, 0], [D, 0]], type: 'mountain' },
+          { pts: [[0, 0], [0, Lw]], type: 'mountain' },
+          { pts: [[D, 0], [D, Lw]], type: 'mountain' }
+        ],
+        -0.15
+      );
+      pocketBasePivot.add(pocketBasePanel);
+      addLabelAnchor(pocketBasePanel, D / 2, 1, Lw / 2, 'Base Bolsillo', 'mountain');
+
+      // Solapas de sujeción de la base: delante (x=0) y detrás (x=D). Se doblan hacia arriba y se pegan por dentro de las paredes del bolsillo
+      const mkFlap = (key, x, dir) => {
+        const piv = new THREE.Group();
+        piv.position.set(x, 0, 0);
+        pocketBasePivot.add(piv);
+        hinges[key] = piv;
+        piv.add(createPanel(
+          [[0, 0], [0, Lw], [dir * T_pflap, Lw - chamfer], [dir * T_pflap, chamfer]],
+          [{ pts: [[0, 0], [0, Lw]], type: 'mountain' }],
+          0.35 * dir
+        ));
+      };
+      mkFlap('pocketFlapF', 0, -1);
+      mkFlap('pocketFlapB', D, 1);
+
+      // Espalda Bolsillo (Lw x Lh)
+      const pocketBackPivot = new THREE.Group();
+      pocketBackPivot.position.set(D, 0, 0);
+      pocketOuterPivot.add(pocketBackPivot);
+      hinges.pocketBack = pocketBackPivot;
+
+      const pocketBackPanel = createPanel(
+        [[0, 0], [Lw, 0], [Lw, -Lh], [0, -Lh]],
+        [
+          { pts: [[0, 0], [0, -Lh]], type: 'mountain' },
+          { pts: [[Lw, 0], [Lw, -Lh]], type: 'mountain' }
+        ]
+      );
+      pocketBackPivot.add(pocketBackPanel);
+
+      // Pestaña Pegado Bolsillo (10 x Lh)
+      const pocketGluePivot = new THREE.Group();
+      pocketGluePivot.position.set(Lw, 0, 0);
+      pocketBackPivot.add(pocketGluePivot);
+      hinges.pocketGlue = pocketGluePivot;
+
+      const pocketGluePanel = createPanel(
+        [[0, 0], [T_glue, -chamfer], [T_glue, -Lh + chamfer], [0, -Lh]],
+        [{ pts: [[0, 0], [0, -Lh]], type: 'mountain' }],
+        -0.35
+      );
+      pocketGluePivot.add(pocketGluePanel);
+
+      // Centrar el conjunto en X para mejor encuadre
+      rootAssembly.position.set(-W / 2, 0.5, 0);
+    }
+
+    /**
+     * ============================================================================
+     * MODELO 3D ESTILIZADO DEL ENCENDEDOR (TIPO BIC CLÁSICO)
+     * ============================================================================
+     */
+    function buildLighterModel() {
+      lighterGroup = new THREE.Group();
+
+      // Dimensiones del encendedor (BIC J6: 25.5 x 14.5 x 81 mm)
+      const bodyW = 25.5;   // Eje X
+      const bodyD = 14.5;   // Eje Z
+      const bodyH = 62;     // Altura cuerpo plástico
+
+      // Forma ovalada redondeada en XZ
+      const shape = new THREE.Shape();
+      const rx = bodyW / 2;
+      const rz = bodyD / 2;
+      shape.absellipse(0, 0, rx, rz, 0, Math.PI * 2, false, 0);
+
+      const extrudeSettings = {
+        depth: bodyH,
+        bevelEnabled: true,
+        bevelSegments: 4,
+        steps: 1,
+        bevelSize: 0.9,
+        bevelThickness: 0.9
+      };
+
+      const bodyGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      bodyGeo.rotateX(-Math.PI / 2); // Extrusión hacia +Y
+
+      // Material cuerpo negro satinado
+      const matBody = new THREE.MeshStandardMaterial({
+        color: 0x1e2024,
+        roughness: 0.28,
+        metalness: 0.1
+      });
+      const bodyMesh = new THREE.Mesh(bodyGeo, matBody);
+      bodyMesh.position.y = 1.0;
+      bodyMesh.castShadow = true;
+      bodyMesh.receiveShadow = true;
+      lighterGroup.add(bodyMesh);
+
+      // Collarín negro superior
+      const collarGeo = new THREE.ExtrudeGeometry(shape, {
+        depth: 3.5,
+        bevelEnabled: true,
+        bevelSize: 0.4,
+        bevelThickness: 0.4
+      });
+      collarGeo.rotateX(-Math.PI / 2);
+      const collarMesh = new THREE.Mesh(collarGeo, new THREE.MeshStandardMaterial({
+        color: 0x111111,
+        roughness: 0.45
+      }));
+      collarMesh.position.y = bodyH + 1.5;
+      lighterGroup.add(collarMesh);
+
+      // Protector metálico cromado (lado delantero)
+      const hoodMat = new THREE.MeshStandardMaterial({
+        color: 0xd8dde3,
+        roughness: 0.2,
+        metalness: 0.88
+      });
+      const hoodGeo = new THREE.BoxGeometry(bodyW * 0.82, 13, bodyD * 0.52);
+      const hoodMesh = new THREE.Mesh(hoodGeo, hoodMat);
+      hoodMesh.position.set(0, bodyH + 10.5, bodyD * 0.18);
+      hoodMesh.castShadow = true;
+      lighterGroup.add(hoodMesh);
+
+      // Ruedita de encendido metálica
+      const wheelGeo = new THREE.CylinderGeometry(4.0, 4.0, 3.2, 20);
+      wheelGeo.rotateZ(Math.PI / 2);
+      const wheelMesh = new THREE.Mesh(wheelGeo, new THREE.MeshStandardMaterial({
+        color: 0xaab2bd,
+        roughness: 0.35,
+        metalness: 0.85
+      }));
+      wheelMesh.position.set(0, bodyH + 13.5, -bodyD * 0.08);
+      lighterGroup.add(wheelMesh);
+
+      // Pulsador rojo de gas
+      const triggerGeo = new THREE.BoxGeometry(bodyW * 0.58, 4.2, bodyD * 0.34);
+      const triggerMesh = new THREE.Mesh(triggerGeo, new THREE.MeshStandardMaterial({
+        color: 0xdc2626,
+        roughness: 0.35,
+        metalness: 0.05
+      }));
+      triggerMesh.position.set(0, bodyH + 8.5, -bodyD * 0.28);
+      lighterGroup.add(triggerMesh);
+
+      // Posicionar en el centro del compartimento lateral (cuando la caja está de pie)
+      // En coordenadas de rootAssembly: x = W + Lw/2, z = D/2
+      lighterGroup.position.set(DIM.W + DIM.Lw / 2, 0.8, DIM.D / 2);
+      rootAssembly.add(lighterGroup);
+    }
+
+    /**
+     * ============================================================================
+     * INTERPOLACIÓN ESCALONADA DEL ARMADO Y DESPLIEGUE
+     * ============================================================================
+     */
+    function smoothstep(edge0, edge1, x) {
+      const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+      return t * t * (3 - 2 * t);
+    }
+
+    function updateFoldAnimation() {
+      const f = state.fold; // 0.0 a 1.0
+      const HALF_PI = Math.PI / 2;
+
+      // Etapas fluidas y escalonadas (evitando colisiones durante el plegado)
+      const pBodySides  = smoothstep(0.00, 0.22, f); // Costados izq/der del cuerpo
+      const pBodyFront  = smoothstep(0.10, 0.32, f); // Frente cuerpo y pestaña pegado
+      const pBaseFlaps  = smoothstep(0.22, 0.42, f); // Solapas base izq/der
+      const pBaseMain   = smoothstep(0.30, 0.50, f); // Base y pestaña base
+      const pPocket1    = smoothstep(0.42, 0.62, f); // Frente bolsillo y costado exterior
+      const pPocket2    = smoothstep(0.52, 0.74, f); // Espalda bolsillo, base bolsillo y pestaña
+      const pLidSides   = smoothstep(0.62, 0.80, f); // Costados y pestañas de tapa
+      const pLidTop     = smoothstep(0.70, 0.88, f); // Techo y frente de tapa
+      const pPocketFlaps = smoothstep(0.72, 0.86, f); // Solapas de sujeción de la base del bolsillo
+      const pStandUp    = smoothstep(0.84, 1.00, f); // Levantar la caja 90° para pararla
+
+      // 1. Base
+      hinges.base.rotation.x = -HALF_PI * pBaseMain;
+      hinges.baseTab.rotation.x = -HALF_PI * pBaseMain;
+
+      // 2. Rama Izquierda
+      hinges.leftSide.rotation.z = -HALF_PI * pBodySides;
+      hinges.leftBaseFlap.rotation.x = -HALF_PI * pBaseFlaps;
+      hinges.frontBody.rotation.z = -HALF_PI * pBodyFront;
+      hinges.bodyGlue.rotation.z = -HALF_PI * pBodyFront;
+
+      // 3. Rama Derecha
+      hinges.rightSide.rotation.z = HALF_PI * pBodySides;
+      hinges.rightBaseFlap.rotation.x = -HALF_PI * pBaseFlaps;
+
+      // 4. Compartimento Encendedor (DOBLECES INVERSOS DE MONTAÑA)
+      hinges.pocketFront.rotation.z = -HALF_PI * pPocket1;
+      hinges.pocketOuter.rotation.z = -HALF_PI * pPocket1;
+      hinges.pocketBase.rotation.x = HALF_PI * pPocket2;
+      hinges.pocketBack.rotation.z = -HALF_PI * pPocket2;
+      hinges.pocketGlue.rotation.z = -HALF_PI * pPocket2;
+      hinges.pocketFlapF.rotation.z = HALF_PI * pPocketFlaps;
+      hinges.pocketFlapB.rotation.z = -HALF_PI * pPocketFlaps;
+
+      // 5. Tapa Abatible
+      // La tapa solo se puede abrir con la caja armada (la bisagra no tiene sentido en la plantilla plana)
+      const lidK = smoothstep(0.88, 0.96, f);
+      const lidSl = document.getElementById('lid-slider');
+      if (lidSl) { lidSl.disabled = lidK < 1; lidSl.style.opacity = lidK < 1 ? 0.4 : 1; }
+      const lidOpenRad = THREE.MathUtils.degToRad(state.lidOpen * lidK);
+      // Abrir tapa hacia atrás (-Y local)
+      hinges.lidBack.rotation.x = -lidOpenRad;
+      hinges.lidLeft.rotation.z = -HALF_PI * pLidSides;
+      hinges.lidLeftGlue.rotation.z = -HALF_PI * pLidSides;
+      hinges.lidRight.rotation.z = HALF_PI * pLidSides;
+      hinges.lidRightGlue.rotation.z = HALF_PI * pLidSides;
+      hinges.lidTop.rotation.x = HALF_PI * pLidTop;
+      hinges.lidFront.rotation.x = HALF_PI * pLidTop;
+
+      // 6. Incorporar caja sobre el tapete al finalizar el armado
+      rootPivot.rotation.x = HALF_PI * pStandUp;
+
+      // 7. Animación de inserción del encendedor
+      if (lighterGroup) {
+        const lighterAppear = smoothstep(0.88, 1.00, f);
+        lighterGroup.visible = state.showLighter && lighterAppear > 0.02;
+        if (lighterGroup.visible) {
+          // Desciende suavemente desde arriba hacia el fondo del bolsillo
+          lighterGroup.position.y = 0.8 + (1 - lighterAppear) * (DIM.Lh + 2);
+        }
+      }
+
+      // Actualizar texto de etapa en UI
+      updateStageIndicator(f);
+    }
+
+    function updateStageIndicator(f) {
+      const el = document.getElementById('stage-indicator');
+      let color = 'bg-amber-500';
+      let text = '';
+      if (f <= 0.01) {
+        color = 'bg-blue-500';
+        text = 'Plantilla 2D plana (sin solapamientos)';
+      } else if (f < 0.30) {
+        text = 'Paso 1: Plegando paredes del cuerpo principal';
+      } else if (f < 0.46) {
+        text = 'Paso 2: Cerrando base y solapas inferiores';
+      } else if (f < 0.74) {
+        color = 'bg-orange-500';
+        text = 'Paso 3: Doblez inverso (montaña) del bolsillo';
+      } else if (f < 0.86) {
+        text = 'Paso 4: Tapa abatible y solapas de sujeción del bolsillo';
+      } else if (f < 0.99) {
+        text = 'Paso 5: Incorporando caja e insertando encendedor';
+      } else {
+        color = 'bg-emerald-500';
+        text = 'Caja armada y lista (prueba abrir la tapa)';
+      }
+      el.innerHTML = `<span class="w-2 h-2 rounded-full ${color} inline-block shrink-0"></span><span>${text}</span>`;
+    }
+
+    /**
+     * ============================================================================
+     * EXPORTACIÓN DINÁMICA DE PLANTILLA SVG A ESCALA REAL (1:1 EN MILÍMETROS)
+     * ============================================================================
+     */
+    async function generateAndDownloadSVG() {
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer } = DIM;
+      const diffH = H_hinge - H_front; // 4 mm
+
+      // Coordenadas exactas en 2D (origen en esquina inferior izquierda de Espalda Cuerpo = (0,0))
+      // En SVG: +X es derecha, +Y es abajo (coincide con nuestro +Z local!)
+      const minX = -(D + W + T_glue);                   // -89 mm
+      const maxX = W + D + Lw + D + Lw + T_glue;        // 145 mm
+      const minY = -(H_hinge + H_lid_back + D + H_lid_front); // -138 mm
+      const maxY = D + T_base;                          // +34 mm
+
+      const margin = 15;
+      const svgW = (maxX - minX) + margin * 2;
+      const svgH = (maxY - minY) + margin * 2;
+      const ox = -minX + margin;
+      const oy = -minY + margin;
+
+      const p = (x, y) => `${(x + ox).toFixed(2)},${(y + oy).toFixed(2)}`;
+      const line = (x1, y1, x2, y2) =>
+        `<line x1="${(x1 + ox).toFixed(2)}" y1="${(y1 + oy).toFixed(2)}" x2="${(x2 + ox).toFixed(2)}" y2="${(y2 + oy).toFixed(2)}" />`;
+      const polyline = (pts) =>
+        `<polyline points="${pts.map(([x, y]) => p(x, y)).join(' ')}" />`;
+
+      // Contorno exterior de corte continuo (cerrado por tramos exactos)
+      const cutPaths = [
+        // 1. Rama izquierda (Pestaña + Frente + Costado Izq + Solapa Base Izq)
+        polyline([
+          [0, 0], [0, T_base + D] // se dibuja en rama base
+        ]),
+      ];
+      cutPaths.length = 0;
+
+      // Base + Pestaña Base
+      cutPaths.push(polyline([
+        [0, 0], [0, D], [chamfer, D + T_base], [W - chamfer, D + T_base], [W, D], [W, 0]
+      ]));
+
+      // Solapa Base Izquierda
+      cutPaths.push(polyline([
+        [-D, 0], [-D + chamfer, T_side_base], [-chamfer, T_side_base], [0, 0]
+      ]));
+
+      // Frente Cuerpo + Pestaña Pegado Cuerpo + borde superior Costado Izq
+      cutPaths.push(polyline([
+        [-D, 0], [-D - W, 0], [-D - W - T_glue, -chamfer],
+        [-D - W - T_glue, -H_front + chamfer], [-D - W, -H_front],
+        [-D, -H_front], [0, -H_hinge]
+      ]));
+
+      // Tapa: Costado Izq Tapa + Pestaña + Techo + Frente Tapa + Costado Der Tapa + Pestaña
+      const lidBaseY = -H_hinge;
+      const lidTopY = -H_hinge - H_lid_back;
+      const lidRoofY = lidTopY - D;
+      const lidFrontY = lidRoofY - H_lid_front;
+
+      cutPaths.push(polyline([
+        [0, lidBaseY], [-D, lidBaseY + diffH],
+        [-D - T_lid_glue, lidBaseY + diffH - chamfer],
+        [-D - T_lid_glue, lidTopY + chamfer],
+        [-D, lidTopY], [0, lidTopY],
+        [0, lidRoofY], [0, lidFrontY], [W, lidFrontY], [W, lidRoofY],
+        [W, lidTopY], [W + D, lidTopY],
+        [W + D + T_lid_glue, lidTopY + chamfer],
+        [W + D + T_lid_glue, lidBaseY + diffH - chamfer],
+        [W + D, lidBaseY + diffH], [W, lidBaseY]
+      ]));
+
+      // Costado Derecho Cuerpo (borde superior diagonal + segmento sobre bolsillo)
+      cutPaths.push(polyline([
+        [W, -H_hinge], [W + D, -H_front]
+      ]));
+
+      // Solapa Base Derecha
+      cutPaths.push(polyline([
+        [W, 0], [W + chamfer, T_side_base], [W + D - chamfer, T_side_base], [W + D, 0]
+      ]));
+
+      // Compartimento Encendedor (Frente + Costado Ext + Base + Espalda + Pestaña)
+      const px0 = W + D;
+      const px1 = px0 + Lw;
+      const px2 = px1 + D;
+      const px3 = px2 + Lw;
+      const px4 = px3 + T_glue;
+
+      // Borde superior del bolsillo
+      cutPaths.push(polyline([
+        [px0, -(H_front - 1)], [px0 + T_lid_glue + 1, -(H_front - 1)], [px0 + T_lid_glue + 1, -Lh], [px1, -Lh], [px2, -Lh], [px3, -Lh],
+        [px4, -Lh + chamfer], [px4, -chamfer], [px3, 0], [px2, 0]
+      ]));
+      // Base bolsillo
+      cutPaths.push(polyline([
+        [px1, 0], [px1 - T_pflap, chamfer], [px1 - T_pflap, Lw - chamfer], [px1, Lw], [px2, Lw], [px2 + T_pflap, Lw - chamfer], [px2 + T_pflap, chamfer], [px2, 0]
+      ]));
+      // Borde inferior Frente Bolsillo
+      cutPaths.push(line(px0, 0, px1, 0));
+
+      // Líneas de DOBLEZ VALLE (+90°, Azul punteado)
+      const valleyLines = [
+        // Alrededor de Espalda Cuerpo
+        line(0, 0, W, 0),
+        line(0, 0, 0, -H_hinge),
+        line(W, 0, W, -H_hinge),
+        line(0, -H_hinge, W, -H_hinge),
+        // Base
+        line(0, D, W, D),
+        // Rama izquierda
+        line(-D, 0, 0, 0),
+        line(-D, 0, -D, -H_front),
+        line(-D - W, 0, -D - W, -H_front),
+        // Rama derecha (solapa base)
+        line(W, 0, W + D, 0),
+        // Tapa
+        line(0, lidBaseY, 0, lidTopY),
+        line(W, lidBaseY, W, lidTopY),
+        line(-D, lidBaseY + diffH, -D, lidTopY),
+        line(W + D, lidBaseY + diffH, W + D, lidTopY),
+        line(0, lidTopY, W, lidTopY),
+        line(0, lidRoofY, W, lidRoofY)
+      ];
+
+      // Líneas de DOBLEZ MONTAÑA (-90° inverso, Naranja punteado)
+      const mountainLines = [
+        line(px0, 0, px0, -(H_front - 1)),
+        line(px1, 0, px1, -Lh),
+        line(px2, 0, px2, -Lh),
+        line(px3, 0, px3, -Lh),
+        line(px1, 0, px2, 0),
+        line(px1, 0, px1, Lw),
+        line(px2, 0, px2, Lw)
+      ];
+
+      const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="${svgW.toFixed(2)}mm"
+     height="${svgH.toFixed(2)}mm"
+     viewBox="0 0 ${svgW.toFixed(2)} ${svgH.toFixed(2)}">
+  <title>Plantilla Caja Flip-Top con Compartimento de Encendedor (1:1 mm)</title>
+  <rect width="100%" height="100%" fill="#ffffff" />
+
+  <!-- Información técnica y barra de escala 50 mm -->
+  <g font-family="Arial, sans-serif" fill="#44403c">
+    <text x="12" y="12" font-size="4.5" font-weight="bold">CAJA FLIP-TOP + BOLSILLO ENCENDEDOR (ESCALA REAL 1:1 EN MM)</text>
+    <text x="12" y="17.5" font-size="3.2">Caja: ${W}×${D}×${H} mm | Bolsillo: ${Lw}×${D}×${Lh} mm | Negro: Corte | Azul: Doblez Valle (+90°) | Naranja: Doblez Montaña (-90°)</text>
+    <line x1="12" y1="22" x2="62" y2="22" stroke="#1c1917" stroke-width="0.5" />
+    <line x1="12" y1="20.5" x2="12" y2="23.5" stroke="#1c1917" stroke-width="0.5" />
+    <line x1="62" y1="20.5" x2="62" y2="23.5" stroke="#1c1917" stroke-width="0.5" />
+    <text x="37" y="25.8" font-size="2.8" text-anchor="middle">Escala de verificación: 50 mm</text>
+  </g>
+
+  <!-- Capa 1: Líneas de Doblez Valle (+90°) -->
+  <g id="doblez-valle" fill="none" stroke="#2563eb" stroke-width="0.35" stroke-dasharray="2.5,1.8">
+    ${valleyLines.join('\n    ')}
+  </g>
+
+  <!-- Capa 2: Líneas de Doblez Montaña (-90° Inverso) -->
+  <g id="doblez-montana" fill="none" stroke="#ea580c" stroke-width="0.4" stroke-dasharray="2.5,1.8">
+    ${mountainLines.join('\n    ')}
+  </g>
+
+  <!-- Capa 3: Líneas de Corte Continuo -->
+  <g id="corte" fill="none" stroke="#1c1917" stroke-width="0.45" stroke-linecap="round" stroke-linejoin="round">
+    ${cutPaths.join('\n    ')}
+  </g>
+
+  <!-- Etiquetas de referencia -->
+  <g id="etiquetas" font-family="Arial, sans-serif" font-size="3.2" fill="#78716c" text-anchor="middle">
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(-H_hinge / 2 + oy).toFixed(2)}">ESPALDA CUERPO</text>
+    <text x="${(-D - W / 2 + ox).toFixed(2)}" y="${(-H_front / 2 + oy).toFixed(2)}">FRENTE CUERPO</text>
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(D / 2 + oy).toFixed(2)}">BASE</text>
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(lidRoofY + D / 2 + oy).toFixed(2)}">TECHO TAPA</text>
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(lidFrontY + H_lid_front / 2 + oy).toFixed(2)}">FRENTE TAPA</text>
+    <text x="${(px0 + Lw / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + oy).toFixed(2)}" fill="#c2410c" font-size="2.5">FRENTE</text>
+    <text x="${(px0 + Lw / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + 3.5 + oy).toFixed(2)}" fill="#c2410c" font-size="2.5">BOLSILLO</text>
+    <text x="${(px1 + D / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + oy).toFixed(2)}" fill="#c2410c" font-size="2.5">EXTERIOR</text>
+    <text x="${(px1 + D / 2 + ox).toFixed(2)}" y="${(Lw / 2 + oy).toFixed(2)}" fill="#c2410c" font-size="2.3">BASE BOLS.</text>
+    <text x="${(px2 + Lw / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + oy).toFixed(2)}" fill="#c2410c" font-size="2.5">ESPALDA</text>
+    <text x="${(px2 + Lw / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + 3.5 + oy).toFixed(2)}" fill="#c2410c" font-size="2.5">BOLSILLO</text>
+  </g>
+</svg>`;
+
+      const filename = 'plantilla_caja_encendedor_1a1.svg';
+      try {
+        // En la página publicada, las descargas pasan por la capacidad "downloads"
+        const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+        if (dl) {
+          await dl.save({ filename, data: svgContent });
+        } else {
+          // Respaldo para abrir el archivo en local (doble clic)
+          const url = URL.createObjectURL(new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' }));
+          const a = document.createElement('a');
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+        showToast('Plantilla SVG (1:1 mm) lista');
+      } catch (err) {
+        showToast(err && err.code === 'declined' ? 'Descarga cancelada' : 'No se pudo guardar el archivo');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2800);
+    }
+
+    /**
+     * ============================================================================
+     * INICIALIZACIÓN DE ESCENA, ILUMINACIÓN Y TAPETE DE CORTE
+     * ============================================================================
+     */
+    function initScene() {
+      const container = document.getElementById('canvas-container');
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf3ede4);
+      scene.fog = new THREE.Fog(0xf3ede4, 480, 1050);
+
+      camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 2000);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      container.appendChild(renderer.domElement);
+
+      // Iluminación de estudio cálida y suave
+      const hemiLight = new THREE.HemisphereLight(0xfffaf2, 0xd4c5b2, 0.85);
+      hemiLight.position.set(0, 300, 0);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.85);
+      dirLight.position.set(120, 220, 140);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 20;
+      dirLight.shadow.camera.far = 650;
+      const d = 180;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      dirLight.shadow.bias = -0.0005;
+      scene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0xe0ecff, 0.35);
+      fillLight.position.set(-140, 120, -100);
+      scene.add(fillLight);
+
+      // Tapete de corte (plano receptor de sombras + cuadrícula de 10mm)
+      const matPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(1400, 1400),
+        new THREE.MeshStandardMaterial({ color: 0xeee6da, roughness: 0.95 })
+      );
+      matPlane.rotation.x = -Math.PI / 2;
+      matPlane.position.y = -0.1;
+      matPlane.receiveShadow = true;
+      scene.add(matPlane);
+
+      const gridHelper = new THREE.GridHelper(500, 50, 0xc7bba8, 0xdfd5c5);
+      gridHelper.position.y = 0.0;
+      scene.add(gridHelper);
+
+      // Construir geometría de la caja y el encendedor
+      buildBoxHierarchy();
+      buildLighterModel();
+      updateFoldAnimation();
+
+      // Eventos de cámara y UI
+      setupOrbitControls(renderer.domElement);
+      setupUIEvents();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /**
+     * ============================================================================
+     * CONTROL ORBITAL SUAVE (RATÓN + TÁCTIL)
+     * ============================================================================
+     */
+    function setupOrbitControls(domEl) {
+      domEl.addEventListener('contextmenu', e => e.preventDefault());
+
+      domEl.addEventListener('mousedown', e => {
+        if (e.button === 0) orbit.isDragging = true;
+        if (e.button === 2 || e.button === 1) orbit.isPanning = true;
+        orbit.lastX = e.clientX;
+        orbit.lastY = e.clientY;
+      });
+
+      window.addEventListener('mousemove', e => {
+        if (!orbit.isDragging && !orbit.isPanning) return;
+        const dx = e.clientX - orbit.lastX;
+        const dy = e.clientY - orbit.lastY;
+        orbit.lastX = e.clientX;
+        orbit.lastY = e.clientY;
+
+        if (orbit.isDragging) {
+          orbit.desiredTheta -= dx * 0.007;
+          orbit.desiredPhi = Math.max(0.06, Math.min(Math.PI / 2 - 0.04, orbit.desiredPhi - dy * 0.007));
+        } else if (orbit.isPanning) {
+          panCamera(dx, dy);
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        orbit.isDragging = false;
+        orbit.isPanning = false;
+      });
+
+      domEl.addEventListener('wheel', e => {
+        e.preventDefault();
+        orbit.desiredRadius = Math.max(95, Math.min(580, orbit.desiredRadius + e.deltaY * 0.25));
+      }, { passive: false });
+
+      // Eventos táctiles
+      domEl.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+          orbit.isDragging = true;
+          orbit.lastX = e.touches[0].clientX;
+          orbit.lastY = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+          orbit.isDragging = false;
+          orbit.lastPinchDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+        }
+      }, { passive: false });
+
+      domEl.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (e.touches.length === 1 && orbit.isDragging) {
+          const dx = e.touches[0].clientX - orbit.lastX;
+          const dy = e.touches[0].clientY - orbit.lastY;
+          orbit.lastX = e.touches[0].clientX;
+          orbit.lastY = e.touches[0].clientY;
+          orbit.desiredTheta -= dx * 0.008;
+          orbit.desiredPhi = Math.max(0.06, Math.min(Math.PI / 2 - 0.04, orbit.desiredPhi - dy * 0.008));
+        } else if (e.touches.length === 2) {
+          const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          const delta = orbit.lastPinchDist - dist;
+          orbit.desiredRadius = Math.max(95, Math.min(580, orbit.desiredRadius + delta * 0.7));
+          orbit.lastPinchDist = dist;
+        }
+      }, { passive: false });
+
+      domEl.addEventListener('touchend', () => {
+        orbit.isDragging = false;
+      });
+    }
+
+    function panCamera(dx, dy) {
+      const panSpeed = orbit.desiredRadius * 0.0014;
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+      const up = new THREE.Vector3().crossVectors(right, forward).normalize();
+      orbit.desiredTarget.addScaledVector(right, -dx * panSpeed);
+      orbit.desiredTarget.addScaledVector(up, dy * panSpeed);
+    }
+
+    function setCameraView(mode) {
+      if (mode === '3d') {
+        orbit.desiredTheta = 0.58;
+        orbit.desiredPhi = 1.12;
+        orbit.desiredRadius = 215;
+        orbit.desiredTarget.set(8, 42, 12);
+      } else if (mode === 'top') {
+        orbit.desiredTheta = 0.0;
+        orbit.desiredPhi = 0.06; // Vista cenital casi perpendicular
+        orbit.desiredRadius = 350;
+        orbit.desiredTarget.set(14, 0, -48);
+      }
+    }
+
+    /**
+     * ============================================================================
+     * EVENTOS DE INTERFAZ DE USUARIO
+     * ============================================================================
+     */
+    function setupUIEvents() {
+      const foldSlider = document.getElementById('fold-slider');
+      const foldPercent = document.getElementById('fold-percent');
+      const lidSlider = document.getElementById('lid-slider');
+      const lidAngleLabel = document.getElementById('lid-angle-label');
+      const playBtn = document.getElementById('play-btn');
+      const playText = document.getElementById('play-text');
+      const playIcon = document.getElementById('play-icon');
+
+      const syncFoldUI = () => {
+        foldSlider.value = (state.fold * 100).toFixed(1);
+        foldPercent.textContent = `${Math.round(state.fold * 100)}%`;
+      };
+
+      foldSlider.addEventListener('input', e => {
+        state.isPlaying = false;
+        updatePlayBtnUI();
+        state.fold = parseFloat(e.target.value) / 100;
+        foldPercent.textContent = `${Math.round(state.fold * 100)}%`;
+        updateFoldAnimation();
+      });
+
+      lidSlider.addEventListener('input', e => {
+        state.lidOpen = parseFloat(e.target.value);
+        lidAngleLabel.textContent = `${Math.round(state.lidOpen)}°`;
+        updateFoldAnimation();
+      });
+
+      function updatePlayBtnUI() {
+        if (state.isPlaying) {
+          playText.textContent = 'Pausar';
+          playIcon.innerHTML = '<path d="M6 5h4v14H6zm8 0h4v14h-4z" />';
+        } else {
+          playText.textContent = 'Animar';
+          playIcon.innerHTML = '<path d="M8 5v14l11-7z" />';
+        }
+      }
+
+      const speedSlider = document.getElementById('speed-slider');
+      speedSlider.addEventListener('input', e => {
+        state.speed = parseFloat(e.target.value) / 100;
+        const secs = (1 / (0.24 * state.speed)).toFixed(1).replace('.', ',');
+        document.getElementById('speed-label').textContent = `${state.speed}× · ${secs} s`;
+      });
+
+      playBtn.addEventListener('click', () => {
+        state.isPlaying = !state.isPlaying;
+        if (state.isPlaying) {
+          if (state.fold >= 0.99) state.playDirection = -1;
+          else if (state.fold <= 0.01) state.playDirection = 1;
+        }
+        updatePlayBtnUI();
+      });
+
+      document.getElementById('flat-btn').addEventListener('click', () => {
+        state.isPlaying = false;
+        updatePlayBtnUI();
+        state.fold = 0;
+        state.lidOpen = 0;
+        lidSlider.value = 0;
+        lidAngleLabel.textContent = '0°';
+        syncFoldUI();
+        updateFoldAnimation();
+        setCameraView('top');
+      });
+
+      document.getElementById('assembled-btn').addEventListener('click', () => {
+        state.isPlaying = false;
+        updatePlayBtnUI();
+        state.fold = 1;
+        syncFoldUI();
+        updateFoldAnimation();
+        setCameraView('3d');
+      });
+
+      document.getElementById('cam-3d-btn').addEventListener('click', () => setCameraView('3d'));
+      document.getElementById('cam-top-btn').addEventListener('click', () => setCameraView('top'));
+
+      document.getElementById('toggle-lighter').addEventListener('change', e => {
+        state.showLighter = e.target.checked;
+        updateFoldAnimation();
+      });
+
+      document.getElementById('toggle-labels').addEventListener('change', e => {
+        state.showLabels = e.target.checked;
+        document.getElementById('labels-layer').style.display = state.showLabels ? 'block' : 'none';
+        document.getElementById('legend-box').style.display = state.showLabels ? 'block' : 'none';
+      });
+
+      document.getElementById('download-svg-btn').addEventListener('click', generateAndDownloadSVG);
+
+      // Colapsar/expandir panel en móvil
+      const panel = document.getElementById('control-panel');
+      document.getElementById('toggle-panel-btn').addEventListener('click', () => {
+        state.panelOpenMobile = !state.panelOpenMobile;
+        if (state.panelOpenMobile) {
+          panel.classList.remove('translate-y-[120%]', 'opacity-0', 'pointer-events-none');
+        } else {
+          panel.classList.add('translate-y-[120%]', 'opacity-0', 'pointer-events-none');
+        }
+      });
+
+      // Exponer syncFoldUI para el bucle de animación
+      window._syncFoldUI = syncFoldUI;
+      window._updatePlayBtnUI = updatePlayBtnUI;
+    }
+
+    /**
+     * ============================================================================
+     * PROYECCIÓN DE ETIQUETAS 3D Y BUCLE PRINCIPAL DE RENDERIZADO
+     * ============================================================================
+     */
+    const _projVec = new THREE.Vector3();
+    function updateProjectedLabels() {
+      if (!state.showLabels) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      for (const item of labelAnchors) {
+        item.anchor.getWorldPosition(_projVec);
+        _projVec.project(camera);
+
+        // Ocultar si está detrás de la cámara
+        if (_projVec.z > 1) {
+          item.el.style.opacity = '0';
+          continue;
+        }
+        const x = (_projVec.x * 0.5 + 0.5) * w;
+        const y = (-_projVec.y * 0.5 + 0.5) * h;
+        item.el.style.left = `${x}px`;
+        item.el.style.top = `${y}px`;
+        item.el.style.opacity = '0.92';
+      }
+    }
+
+    let lastTime = performance.now();
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      // Animación automática de armado/despliegue
+      if (state.isPlaying) {
+        state.fold += state.playDirection * dt * 0.24 * state.speed;
+        if (state.fold >= 1.0) {
+          state.fold = 1.0;
+          state.isPlaying = false;
+          window._updatePlayBtnUI();
+        } else if (state.fold <= 0.0) {
+          state.fold = 0.0;
+          state.playDirection = 1; // Al llegar a plano 2D, vuelve a armar automáticamente
+        }
+        window._syncFoldUI();
+        updateFoldAnimation();
+      }
+
+      // Interpolación suave de cámara orbital
+      const damp = 1 - Math.exp(-9 * dt);
+      orbit.theta += (orbit.desiredTheta - orbit.theta) * damp;
+      orbit.phi += (orbit.desiredPhi - orbit.phi) * damp;
+      orbit.radius += (orbit.desiredRadius - orbit.radius) * damp;
+      orbit.target.lerp(orbit.desiredTarget, damp);
+
+      camera.position.x = orbit.target.x + orbit.radius * Math.sin(orbit.phi) * Math.sin(orbit.theta);
+      camera.position.y = orbit.target.y + orbit.radius * Math.cos(orbit.phi);
+      camera.position.z = orbit.target.z + orbit.radius * Math.sin(orbit.phi) * Math.cos(orbit.theta);
+      camera.lookAt(orbit.target);
+
+      renderer.render(scene, camera);
+      updateProjectedLabels();
+    }
+
+    function initDesign() {
+      const { W, D, H_hinge, H_front, H_lid_front } = DIM;
+      // dh / dv: espejo que aplica el modelo 3D al mapear cada cara (se compensa aquí)
+      const F = [
+        { k: 'front', n: 'Frente', w: W, h: H_front, b: [-W, 0, 0, H_front], dh: 1 },
+        { k: 'back', n: 'Espalda', w: W, h: H_hinge, b: [0, W, 0, H_hinge], dh: 1 },
+        { k: 'left', n: 'Lateral izq.', w: D, h: H_hinge, b: [-D, 0, 0, H_hinge], dh: 1 },
+        { k: 'right', n: 'Lateral der.', w: D, h: H_hinge, b: [0, D, 0, H_hinge], dh: 1 },
+        { k: 'top', n: 'Tapa (arriba)', w: W, h: D, b: [0, W, 0, D], dv: 1 },
+        { k: 'lidFront', n: 'Frente de tapa', w: W, h: H_lid_front, b: [0, W, 0, H_lid_front], dv: 1 }
+      ];
+      const $ = id => document.getElementById(id);
+      let sel = 'all';
+      const reset = f => { f.rot = 0; f.fh = false; f.fv = false; f.zoom = 1; f.ox = 0; f.oy = 0; };
+      const targets = () => sel === 'all' ? F : F.filter(f => f.k === sel);
+      const cur = () => sel === 'all' ? (F.find(f => f.img) || F[0]) : F.find(f => f.k === sel);
+
+      function view(f) { // canvas en "vista de modelo" (lo que se ve en la cara armada)
+        const c = document.createElement('canvas');
+        c.width = Math.round(f.w * 8); c.height = Math.round(f.h * 8);
+        const x = c.getContext('2d');
+        x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        if (!f.img) return c;
+        x.translate(c.width / 2 + f.ox / 100 * c.width, c.height / 2 - f.oy / 100 * c.height);
+        x.rotate(f.rot * Math.PI / 2);
+        x.scale(f.fh ? -1 : 1, f.fv ? -1 : 1);
+        const odd = f.rot % 2;
+        const s = Math.max((odd ? c.height : c.width) / f.img.width, (odd ? c.width : c.height) / f.img.height) * f.zoom;
+        x.drawImage(f.img, -f.img.width * s / 2, -f.img.height * s / 2, f.img.width * s, f.img.height * s);
+        return c;
+      }
+      function apply(f) {
+        const mesh = FP[f.k] && FP[f.k].userData.outer;
+        if (!mesh) return;
+        if (f.mat) { f.mat.map.dispose(); f.mat.dispose(); f.mat = null; }
+        if (!f.img) { mesh.material = matOuter; return; }
+        const P = view(f), c = document.createElement('canvas');
+        c.width = P.width; c.height = P.height;
+        const x = c.getContext('2d');
+        x.translate(f.dh ? c.width : 0, f.dv ? c.height : 0);
+        x.scale(f.dh ? -1 : 1, f.dv ? -1 : 1);
+        x.drawImage(P, 0, 0);
+        const t = new THREE.CanvasTexture(c);
+        t.encoding = THREE.sRGBEncoding; t.anisotropy = 8;
+        const [x0, x1, y0, y1] = f.b;
+        t.repeat.set(1 / (x1 - x0), 1 / (y1 - y0));
+        t.offset.set(-x0 / (x1 - x0), -y0 / (y1 - y0));
+        f.mat = matOuter.clone(); f.mat.map = t; f.mat.color.set(0xffffff);
+        mesh.material = f.mat;
+      }
+      function preview() {
+        const f = cur(), P = view(f), pv = $('design-prev');
+        pv.width = P.width; pv.height = P.height;
+        const x = pv.getContext('2d');
+        x.drawImage(P, 0, 0);
+        if (!f.img) { x.fillStyle = '#a8a29e'; x.font = '22px sans-serif'; x.textAlign = 'center'; x.fillText('Sin imagen en ' + f.n, P.width / 2, P.height / 2); }
+        $('d-zoom').value = Math.round(f.zoom * 100); $('d-ox').value = f.ox; $('d-oy').value = f.oy;
+        $('d-zoom-v').textContent = Math.round(f.zoom * 100) + '%'; $('d-ox-v').textContent = f.ox; $('d-oy-v').textContent = f.oy;
+      }
+      const change = fn => { targets().forEach(f => { fn(f); apply(f); }); preview(); };
+      function setImg(fs, file) {
+        if (!file) return;
+        const fr = new FileReader();
+        fr.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            fs.forEach(f => { f.img = img; apply(f); });
+            preview();
+            if (state.fold < 0.5 && !state.isPlaying) {
+              state.playDirection = 1; state.isPlaying = true;
+              window._updatePlayBtnUI && window._updatePlayBtnUI();
+            }
+          };
+          img.src = fr.result;
+        };
+        fr.readAsDataURL(file);
+      }
+      $('design-sel').innerHTML = '<option value="all">Todas las caras</option>' + F.map(f => `<option value="${f.k}">${f.n}</option>`).join('');
+      $('design-sel').onchange = e => { sel = e.target.value; preview(); };
+      F.forEach(f => {
+        reset(f); f.img = null; f.mat = null;
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-1.5';
+        row.innerHTML = `<span class="flex-1 text-[11px] text-stone-700">${f.n} <span class="text-stone-400">${f.w}×${f.h}</span></span>
+          <label class="cursor-pointer text-[11px] font-semibold bg-stone-700 hover:bg-stone-800 text-white rounded-lg px-2 py-1">Subir<input type="file" accept="image/*" class="hidden"></label>
+          <button class="w-6 h-6 text-xs bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-md" title="Quitar">✕</button>`;
+        const inp = row.querySelector('input');
+        inp.onchange = e => { sel = f.k; $('design-sel').value = f.k; setImg([f], e.target.files[0]); inp.value = ''; };
+        row.querySelector('button').onclick = () => { f.img = null; apply(f); preview(); };
+        $('design-list').appendChild(row);
+      });
+      $('design-all').onchange = e => { sel = 'all'; $('design-sel').value = 'all'; setImg(F, e.target.files[0]); e.target.value = ''; };
+      $('design-clear').onclick = () => { F.forEach(f => { f.img = null; apply(f); }); preview(); };
+      $('d-rotl').onclick = () => change(f => f.rot = (f.rot + 3) % 4);
+      $('d-rotr').onclick = () => change(f => f.rot = (f.rot + 1) % 4);
+      $('d-fh').onclick = () => change(f => { if (f.rot % 2) f.fv = !f.fv; else f.fh = !f.fh; });
+      $('d-fv').onclick = () => change(f => { if (f.rot % 2) f.fh = !f.fh; else f.fv = !f.fv; });
+      $('d-zoom').oninput = e => change(f => f.zoom = e.target.value / 100);
+      $('d-ox').oninput = e => change(f => f.ox = +e.target.value);
+      $('d-oy').oninput = e => change(f => f.oy = +e.target.value);
+      $('d-reset').onclick = () => change(reset);
+      preview();
+    }
+
+    window.onload = function () {
+      initScene();
+      initDesign();
+      window._syncFoldUI && window._syncFoldUI();
+      setCameraView('top');
+      lastTime = performance.now();
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>

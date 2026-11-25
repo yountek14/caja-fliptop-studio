@@ -1,0 +1,92 @@
+{
+  "bands": [
+    {
+      "id": "band_iron_maiden",
+      "name": "Iron Maiden",
+      "src": "stickers/bands/iron_maiden.svg",
+      "tintable": true,
+      "defaultColor": "#ef4444"
+    },
+    {
+      "id": "band_iron_maiden_eddie",
+      "name": "Iron Maiden Eddie",
+      "src": "stickers/bands/iron_maiden_eddie.svg",
+      "tintable": false,
+      "defaultColor": "#ffffff"
+    },
+    {
+      "id": "band_megadeth",
+      "name": "Megadeth",
+      "src": "stickers/bands/megadeth.png",
+      "tintable": true,
+      "defaultColor": "#f59e0b"
+    },
+    {
+      "id": "band_motorhead",
+      "name": "Motörhead",
+      "src": "stickers/bands/motorhead.svg",
+      "tintable": true,
+      "defaultColor": "#ffffff"
+    }
+  ],
+  "pop": [
+    {
+      "id": "pop_rick_morty",
+      "name": "Rick & Morty Logo",
+      "src": "stickers/pop/rick_and_morty_logo.svg",
+      "tintable": false,
+      "defaultColor": "#65e61c"
+    },
+    {
+      "id": "pop_rick_portal",
+      "name": "Portal Dimensional",
+      "src": "stickers/pop/rick_portal.svg",
+      "tintable": false,
+      "defaultColor": "#65e61c"
+    }
+  ],
+  "monster": [
+    {
+      "id": "mon_can_mango",
+      "name": "Lata Mango Loco",
+      "src": "stickers/monster/can_mango.svg",
+      "tintable": false,
+      "defaultColor": "#0ea5e9"
+    },
+    {
+      "id": "mon_can_orig",
+      "name": "Lata Monster Original",
+      "src": "stickers/monster/can_original.svg",
+      "tintable": false,
+      "defaultColor": "#84cc16"
+    },
+    {
+      "id": "mon_can_ultra",
+      "name": "Lata Zero Ultra",
+      "src": "stickers/monster/can_ultra.svg",
+      "tintable": false,
+      "defaultColor": "#f8fafc"
+    },
+    {
+      "id": "mon_claw",
+      "name": "Garra Monster (Recoloreable)",
+      "src": "stickers/monster/monster_claw.svg",
+      "tintable": true,
+      "defaultColor": "#84cc16"
+    },
+    {
+      "id": "mon_logo",
+      "name": "Monster Logo Oficial",
+      "src": "stickers/monster/monster_logo.png",
+      "tintable": false,
+      "defaultColor": "#84cc16"
+    },
+    {
+      "id": "mon_can_pacific",
+      "name": "Lata Pacific Punch",
+      "src": "stickers/monster/monster_pacific_punch.png",
+      "tintable": false,
+      "defaultColor": "#ef4444"
+    }
+  ]
+}

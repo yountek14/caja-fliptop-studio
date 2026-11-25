@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 240">
+  <rect x="24" y="14" width="92" height="10" rx="4" fill="#cbd5e1"/>
+  <rect x="20" y="22" width="100" height="196" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="24" y="216" width="92" height="10" rx="4" fill="#94a3b8"/>
+  <rect x="20" y="28" width="100" height="8" fill="#cbd5e1"/>
+  <g transform="translate(32,52) scale(0.38)" fill="#94a3b8" stroke="#475569" stroke-width="4">
+    <path d="M28 24 C42 20 56 26 62 36 C56 54 58 95 60 132 C61 156 58 176 52 198 C45 178 44 150 42 118 C40 82 38 56 30 40 Z"/>
+    <path d="M74 18 C90 14 106 20 114 30 C106 50 108 98 110 142 C111 168 108 192 100 212 C92 190 91 162 90 126 C88 86 86 54 78 36 Z"/>
+    <path d="M124 22 C142 18 160 22 174 32 C164 40 156 44 152 54 C150 92 152 134 154 166 C155 184 152 196 146 206 C138 188 137 160 136 126 C134 86 134 54 126 38 Z"/>
+  </g>
+  <text x="70" y="166" font-family="Impact, Arial Black, sans-serif" font-size="22" fill="#334155" text-anchor="middle" letter-spacing="1">MONSTER</text>
+  <text x="70" y="182" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#64748b" text-anchor="middle" letter-spacing="2.5">ZERO ULTRA</text>
+</svg>

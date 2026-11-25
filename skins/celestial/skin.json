@@ -1,0 +1,19 @@
+{
+  "name": "Celestial Dorado & Azul Noche",
+  "innerColor": "#1a242e",
+  "faces": {
+    "lidFront": "skins/celestial/lidFront.png",
+    "front": "skins/celestial/front.png",
+    "lidBack": "skins/celestial/lidBack.png",
+    "back": "skins/celestial/back.png",
+    "top": "skins/celestial/top.png",
+    "base": "skins/celestial/base.png",
+    "lidLeft": "skins/celestial/lidLeft.png",
+    "left": "skins/celestial/left.png",
+    "lidRight": "skins/celestial/lidRight.png",
+    "pocketFront": "skins/celestial/pocketFront.png",
+    "pocketOuter": "skins/celestial/pocketOuter.png",
+    "pocketBack": "skins/celestial/pocketBack.png",
+    "pocketBase": "skins/celestial/pocketBase.png"
+  }
+}

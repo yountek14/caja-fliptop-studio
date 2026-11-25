@@ -2358,7 +2358,7 @@
       const paper = PAPER_SIZES[paperKey] || PAPER_SIZES.a4;
       const bleed = parseFloat(document.getElementById('export-bleed').value) || 0;
 
-      const { W, D, H_hinge, H_lid_back, H_lid_front, Lw, T_base, T_glue, T_lid_glue } = DIM;
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, diffH, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer: c } = DIM;
       const minX = -(D + W + T_glue);                                          // -89
       const maxX = state.hasPocket ? (W + D + Lw + D + Lw + T_glue) : (W + D + T_lid_glue); // 167 o 87
       const minY = -(H_hinge + H_lid_back + D + H_lid_front);                  // -138
@@ -2366,15 +2366,48 @@
       const dieW = maxX - minX;
       const dieH = maxY - minY;
 
-      // Centrado exacto en la hoja (sin texto, sin bordes, sin espejo)
+      // Centrado exacto en la hoja (sin texto, sin espejo, con silueta de recorte)
       const ox = (paper.w - dieW) / 2 - minX;
       const oy = (paper.h - dieH) / 2 - minY;
+
+      const lidBaseY = -H_hinge, lidTopY = -H_hinge - H_lid_back;
+      const lidRoofY = lidTopY - D, lidFrontY = lidRoofY - H_lid_front;
+      const px0 = W + D, px1 = px0 + Lw, px2 = px1 + D, px3 = px2 + Lw, px4 = px3 + T_glue;
+
+      // Silueta exterior de recorte (incluye pestañas de pegado; se adapta a Con/Sin Encendedor)
+      const cutPolys = [
+        [[0, 0], [0, D], [c, D + T_base], [W - c, D + T_base], [W, D], [W, 0]],
+        [[-D, 0], [-D + c, T_side_base], [-c, T_side_base], [0, 0]],
+        [[-D, 0], [-D - W, 0], [-D - W - T_glue, -c], [-D - W - T_glue, -H_front + c], [-D - W, -H_front], [-D, -H_front], [0, -H_hinge]],
+        [
+          [0, lidBaseY], [-D, lidBaseY + diffH], [-D - T_lid_glue, lidBaseY + diffH - c],
+          [-D - T_lid_glue, lidTopY + c], [-D, lidTopY], [0, lidTopY],
+          [0, lidRoofY], [0, lidFrontY], [W, lidFrontY], [W, lidRoofY],
+          [W, lidTopY], [W + D, lidTopY], [W + D + T_lid_glue, lidTopY + c],
+          [W + D + T_lid_glue, lidBaseY + diffH - c], [W + D, lidBaseY + diffH], [W, lidBaseY]
+        ],
+        [[W, -H_hinge], [W + D, -H_front]],
+        [[W, 0], [W + c, T_side_base], [W + D - c, T_side_base], [W + D, 0]]
+      ];
+
+      if (state.hasPocket) {
+        cutPolys.push(
+          [[px0, -H_front], [px0, -(H_front - 1)], [px0 + T_lid_glue + 1, -(H_front - 1)], [px0 + T_lid_glue + 1, -Lh], [px1, -Lh], [px2, -Lh], [px3, -Lh], [px4, -Lh + c], [px4, -c], [px3, 0], [px2, 0]],
+          [[px1, 0], [px1 - T_pflap, c], [px1 - T_pflap, Lw - c], [px1, Lw], [px2, Lw], [px2 + T_pflap, Lw - c], [px2 + T_pflap, c], [px2, 0]],
+          [[px0, 0], [px1, 0]]
+        );
+      } else {
+        // Cerrar borde derecho del cuerpo cuando es modelo Sin Encendedor
+        cutPolys.push([[W + D, 0], [W + D, -H_front]]);
+      }
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [paper.w, paper.h] });
 
       const renderPage = (side, isFirst) => {
         if (!isFirst) doc.addPage([paper.w, paper.h], 'landscape');
+        const tx = x => x + ox;
+        const ty = y => y + oy;
 
         const DPI_PX = 12; // ~305 DPI
         const pad = bleed;
@@ -2422,6 +2455,19 @@
         const imgX = minX + ox - pad;
         const imgY = minY + oy - pad;
         doc.addImage(artCanvas.toDataURL('image/png'), 'PNG', imgX, imgY, artW, artH, undefined, 'FAST');
+
+        // Silueta vectorial de recorte (solo contorno exterior + ventanita, sin letras ni líneas de doblez)
+        doc.setDrawColor(28, 25, 23);
+        doc.setLineWidth(0.35);
+        doc.setLineDashPattern([], 0);
+        cutPolys.forEach(pts => {
+          for (let i = 0; i < pts.length - 1; i++) {
+            doc.line(tx(pts[i][0]), ty(pts[i][1]), tx(pts[i + 1][0]), ty(pts[i + 1][1]));
+          }
+        });
+        if (state.hasWindow && side === 'A') {
+          doc.roundedRect(tx(-D - W + WIN.mx), ty(-H_front + WIN.my), WIN.w, WIN.h, WIN.r, WIN.r, 'S');
+        }
       };
 
       renderPage('A', true);
@@ -2431,7 +2477,7 @@
       const winTag = state.hasWindow ? '_ventanita' : '';
       const fname = `caja_fliptop_${paperKey}_${suffix}${winTag}_1a1.pdf`;
       doc.save(fname);
-      showToast(`PDF limpio listo: ${fname}`);
+      showToast(`PDF listo con silueta de recorte: ${fname}`);
     }
 
     /**

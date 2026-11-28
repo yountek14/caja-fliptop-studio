@@ -120,5 +120,110 @@
     if (showToast) showToast('Mockup 3D descargado (listo para WhatsApp)');
   }
 
-  window.StudioMockup = { exportClientMockup };
+  let isRecording360 = false;
+
+  /**
+   * Graba un video 360° fluido (~5.5 s) girando la caja armada y abriendo/cerrando la tapa.
+   * Descarga un archivo .webm limpio listo para WhatsApp, Instagram Reels o TikTok.
+   */
+  function record360Video({ renderer, scene, camera, orbit, state, setFoldAndRender, showToast, openLid = true }) {
+    if (isRecording360) return;
+    if (!renderer || !renderer.domElement || typeof MediaRecorder === 'undefined') {
+      if (showToast) showToast('Tu navegador no soporta grabación de video WebM');
+      return;
+    }
+
+    isRecording360 = true;
+    if (showToast) showToast('Grabando video 360° (5.5 s)... no cierres la pestaña');
+
+    const prevFold = state.fold;
+    const prevLid = state.lidOpen;
+    const prevPlaying = state.isPlaying;
+    const prevTheta = orbit.desiredTheta;
+    const prevPhi = orbit.desiredPhi;
+    const prevRadius = orbit.desiredRadius;
+    const prevTarget = orbit.desiredTarget.clone();
+
+    state.isPlaying = false;
+    state.fold = 1;
+    state.lidOpen = 0;
+    if (setFoldAndRender) setFoldAndRender();
+
+    const stream = renderer.domElement.captureStream(30);
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : (MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm');
+    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4500000 });
+    const chunks = [];
+
+    recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `caja_fliptop_360_${Date.now().toString().slice(-5)}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+      // Restaurar estado original
+      state.fold = prevFold;
+      state.lidOpen = prevLid;
+      state.isPlaying = prevPlaying;
+      orbit.desiredTheta = prevTheta;
+      orbit.desiredPhi = prevPhi;
+      orbit.desiredRadius = prevRadius;
+      orbit.desiredTarget.copy(prevTarget);
+      if (setFoldAndRender) setFoldAndRender();
+
+      isRecording360 = false;
+      if (window.StudioAudio) window.StudioAudio.playAction('save');
+      if (showToast) showToast('Video 360° descargado (.webm)');
+    };
+
+    const startTheta = 0.45;
+    const targetPos = new THREE.Vector3(state.hasPocket ? 12 : 0, 44, 10);
+    orbit.theta = startTheta;
+    orbit.desiredTheta = startTheta;
+    orbit.phi = 1.18;
+    orbit.desiredPhi = 1.18;
+    orbit.radius = 205;
+    orbit.desiredRadius = 205;
+    orbit.target.copy(targetPos);
+    orbit.desiredTarget.copy(targetPos);
+
+    const durationMs = 5500;
+    const t0 = performance.now();
+    recorder.start();
+
+    function step(now) {
+      const p = Math.min(1, (now - t0) / durationMs);
+      const angle = startTheta + p * Math.PI * 2;
+      orbit.theta = angle;
+      orbit.desiredTheta = angle;
+
+      // Abrir tapa suavemente entre 35% y 72% del giro
+      if (openLid) {
+        if (p > 0.35 && p < 0.72) {
+          const lp = (p - 0.35) / 0.37;
+          const ease = Math.sin(lp * Math.PI);
+          state.lidOpen = Math.round(ease * 85);
+        } else {
+          state.lidOpen = 0;
+        }
+        if (setFoldAndRender) setFoldAndRender();
+      }
+
+      if (p < 1) {
+        requestAnimationFrame(step);
+      } else {
+        setTimeout(() => recorder.stop(), 120);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  window.StudioMockup = { exportClientMockup, record360Video };
 })();

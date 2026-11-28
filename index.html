@@ -215,8 +215,9 @@
           <!-- Rueda RGB + Pintado Rápido -->
           <div class="rounded-xl p-2.5 bg-stone-50 dark:bg-zinc-800/60 border border-stone-200 dark:border-zinc-700/80 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-300">🌈 Rueda RGB</span>
-              <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-300">Rueda RGB</span>
+              <div class="flex items-center gap-1">
+                <button id="rgb-eyedropper-btn" type="button" title="Gotero: tomar color de cualquier punto de la pantalla" class="p-1 rounded-md bg-stone-200/80 dark:bg-zinc-700 hover:bg-amber-500 hover:text-white text-stone-700 dark:text-zinc-200 transition"><span data-icon="eyedropper" data-size="w-3.5 h-3.5"></span></button>
                 <span id="rgb-wheel-preview" class="w-4 h-4 rounded-full border border-stone-400/70 inline-block" style="background:#1a242e"></span>
                 <input id="rgb-wheel-hex" type="text" value="#1A242E" maxlength="7" class="w-16 text-[10px] font-mono font-bold text-center rounded border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-1 py-0.5 text-stone-800 dark:text-zinc-100" />
               </div>
@@ -505,9 +506,20 @@
 
           <div id="studio-3d-edit-host" class="relative flex-1 w-full min-h-0"></div>
 
+          <!-- Enfocador de Cámara 1-Clic en Editar 3D (estilo Blender / Pacdora) -->
+          <div class="absolute bottom-3 right-3 z-20 flex items-center gap-1 px-2 py-1 rounded-xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-stone-200/80 dark:border-zinc-700 shadow-md text-[10px] font-semibold">
+            <span data-icon="camera" data-size="w-3.5 h-3.5" class="text-amber-600 dark:text-amber-400 mr-0.5"></span>
+            <button data-cam="3d" class="s3d-cam-btn px-2 py-0.5 rounded-md hover:bg-amber-500/20 text-stone-700 dark:text-zinc-200 transition">3/4</button>
+            <button data-cam="front" class="s3d-cam-btn px-2 py-0.5 rounded-md hover:bg-amber-500/20 text-stone-700 dark:text-zinc-200 transition">Frente</button>
+            <button data-cam="back" class="s3d-cam-btn px-2 py-0.5 rounded-md hover:bg-amber-500/20 text-stone-700 dark:text-zinc-200 transition">Espalda</button>
+            <button data-cam="left" class="s3d-cam-btn px-2 py-0.5 rounded-md hover:bg-amber-500/20 text-stone-700 dark:text-zinc-200 transition">Izq</button>
+            <button data-cam="pocket" class="s3d-cam-btn px-2 py-0.5 rounded-md hover:bg-amber-500/20 text-stone-700 dark:text-zinc-200 transition">Bolsillo</button>
+            <button data-cam="roof" class="s3d-cam-btn px-2 py-0.5 rounded-md hover:bg-amber-500/20 text-stone-700 dark:text-zinc-200 transition">Techo</button>
+          </div>
+
           <!-- Ayuda atajos edición 3D -->
-          <div class="absolute bottom-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-white/85 dark:bg-zinc-900/85 backdrop-blur border border-stone-200/70 dark:border-zinc-800 text-[10px] text-stone-600 dark:text-zinc-400 pointer-events-none">
-            Teclas 1–4: Select / Move / Scale / Rotate · Arrastra los gizmos sobre el 3D · Clic der o vacío: girar cámara · Suelta fotos en cualquier cara
+          <div class="hidden xl:block absolute bottom-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-white/85 dark:bg-zinc-900/85 backdrop-blur border border-stone-200/70 dark:border-zinc-800 text-[10px] text-stone-600 dark:text-zinc-400 pointer-events-none">
+            1–5: Herramientas · Ctrl+C / Ctrl+V: Copiar/Pegar capa entre caras · Clic der: girar cámara
           </div>
         </div>
 
@@ -884,6 +896,10 @@
               <button id="export-mockup-dark" class="text-[11px] font-semibold py-1.5 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white transition">🌙 Fondo Oscuro</button>
               <button id="export-mockup-light" class="text-[11px] font-semibold py-1.5 px-2 rounded-lg bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 transition">☀️ Fondo Claro</button>
             </div>
+            <button id="export-video-360" class="w-full flex items-center justify-center gap-1.5 text-[11px] font-bold py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition">
+              <span data-icon="video" data-size="w-4 h-4"></span>
+              <span>Grabar Video 360° (Reels / WhatsApp)</span>
+            </button>
           </div>
         </div>
 
@@ -1067,6 +1083,13 @@
       <!-- Grid de Stickers -->
       <div id="stickers-grid" class="flex-1 overflow-y-auto custom-scroll p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
     </div>
+  </div>
+
+  <!-- Banner discreto de Recuperar Última Sesión (Autoguardado) -->
+  <div id="autosave-banner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-zinc-900/95 text-white border border-amber-500/50 shadow-2xl text-xs">
+    <span>💾 Hay un diseño autoguardado de tu última sesión</span>
+    <button id="autosave-restore-btn" class="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 font-bold transition">Recuperar</button>
+    <button id="autosave-dismiss-btn" class="px-1.5 py-1 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white transition" title="Descartar">✕</button>
   </div>
 
   <!-- Toast -->
@@ -3047,8 +3070,10 @@
     function setCameraView(mode) {
       if (mode === '3d') { orbit.desiredTheta = 0.58; orbit.desiredPhi = 1.12; orbit.desiredRadius = 215; orbit.desiredTarget.set(10, 42, 12); }
       else if (mode === 'top') { orbit.desiredTheta = 0; orbit.desiredPhi = 0.06; orbit.desiredRadius = 350; orbit.desiredTarget.set(14, 0, -48); }
+      else if (mode === 'roof') { orbit.desiredTheta = 0; orbit.desiredPhi = 0.14; orbit.desiredRadius = 175; orbit.desiredTarget.set(10, 88, 12); }
       else if (mode === 'front') { orbit.desiredTheta = 0; orbit.desiredPhi = 1.45; orbit.desiredRadius = 195; orbit.desiredTarget.set(10, 44, 12); }
       else if (mode === 'back') { orbit.desiredTheta = Math.PI; orbit.desiredPhi = 1.45; orbit.desiredRadius = 195; orbit.desiredTarget.set(10, 44, 12); }
+      else if (mode === 'left') { orbit.desiredTheta = -Math.PI / 2; orbit.desiredPhi = 1.42; orbit.desiredRadius = 185; orbit.desiredTarget.set(10, 44, 12); }
       else if (mode === 'pocket') { orbit.desiredTheta = 1.25; orbit.desiredPhi = 1.28; orbit.desiredRadius = 170; orbit.desiredTarget.set(34, 42, 12); }
     }
 
@@ -4167,6 +4192,7 @@
           setLegacyTab: t => window._setLegacyTab && window._setLegacyTab(t),
           onViewportResize: () => onViewportResize(),
           fit2DView: () => fit2DView(),
+          setCameraView: m => setCameraView(m),
           showToast: msg => showToast(msg),
           pushHistory: () => window.StudioLayers.pushHistory(EXTERNAL_FACES, state),
           dbGetAll: s => window._studioDB.dbGetAll(s),
@@ -4187,6 +4213,15 @@
         });
         if (mkDark) mkDark.onclick = () => runMockup('dark');
         if (mkLight) mkLight.onclick = () => runMockup('light');
+        const vid360 = document.getElementById('export-video-360');
+        if (vid360) {
+          vid360.onclick = () => window.StudioMockup.record360Video({
+            renderer, scene, camera, orbit, state,
+            setFoldAndRender: () => updateFoldAnimation(),
+            showToast,
+            openLid: true
+          });
+        }
       }
 
       lastTime = performance.now();

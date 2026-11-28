@@ -231,6 +231,26 @@
     if (rblxSwatch) {
       rblxSwatch.oninput = e => setColor(e.target.value);
     }
+
+    // Botón Gotero (EyeDropper API nativa de Chrome/Edge)
+    const eyeBtn = document.getElementById('rgb-eyedropper-btn');
+    if (eyeBtn) {
+      eyeBtn.onclick = async () => {
+        if ('EyeDropper' in window) {
+          try {
+            const ed = new window.EyeDropper();
+            const res = await ed.open();
+            if (res && res.sRGBHex) {
+              setColor(res.sRGBHex);
+              if (window.StudioAudio) window.StudioAudio.playSnap();
+            }
+          } catch (e) { /* usuario canceló con Esc */ }
+        } else {
+          // Fallback: abrir selector de color nativo
+          if (rblxSwatch) rblxSwatch.click();
+        }
+      };
+    }
   }
 
   window.StudioColorWheel = {

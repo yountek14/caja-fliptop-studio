@@ -22,6 +22,8 @@
   let activeDrawer = 'assets';    // 'assets' | 'designs' | 'text' | 'bg' | 'model' | null
   let activeAssetCat = 'shapes';  // 'shapes' | 'bands' | 'pop' | 'monster' | 'custom'
   let selectedLayerId = null;
+  let copiedLayer = null;
+  let autosaveTimer = null;
   let pipCollapsed = false;
   let dragLayerIdx = null;
 
@@ -43,6 +45,56 @@
     setAppMode('studio');
     setDrawer('assets');
     refreshAllUI();
+    setupCameraQuickButtons();
+    checkAutosaveSession();
+  }
+
+  function setupCameraQuickButtons() {
+    document.querySelectorAll('.s3d-cam-btn').forEach(btn => {
+      btn.onclick = () => {
+        if (api && api.setCameraView) api.setCameraView(btn.dataset.cam);
+        if (window.StudioAudio) window.StudioAudio.playAction('click');
+      };
+    });
+  }
+
+  function scheduleAutosave() {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(async () => {
+      try {
+        const faces = api.getExternalFaces();
+        const hasAny = faces.some(f => window.StudioLayers.faceHasContentUnified(f));
+        if (!hasAny) return;
+        const rec = window.StudioLayers.serializeDesignV3(faces, api.getState(), 'Autoguardado', null);
+        rec.id = '__autosave__';
+        await api.dbPut(rec, 'designs');
+      } catch (e) {}
+    }, 2500);
+  }
+
+  async function checkAutosaveSession() {
+    try {
+      const all = await api.dbGetAll('designs');
+      const auto = all.find(x => x.id === '__autosave__');
+      if (!auto) return;
+      const banner = document.getElementById('autosave-banner');
+      if (!banner) return;
+      banner.classList.remove('hidden');
+      document.getElementById('autosave-restore-btn').onclick = async () => {
+        banner.classList.add('hidden');
+        api.pushHistory();
+        await window.StudioLayers.deserializeDesignV3(auto, api.getExternalFaces(), api.getState(), api.initFaceState);
+        api.syncBoxModelUI();
+        if (api.getSelectedFaceKey() === 'all') api.selectFace('front');
+        refreshAllUI();
+        if (window.StudioAudio) window.StudioAudio.playAction('save');
+        api.showToast('Última sesión recuperada');
+      };
+      document.getElementById('autosave-dismiss-btn').onclick = async () => {
+        banner.classList.add('hidden');
+        await api.dbDelete('__autosave__', 'designs');
+      };
+    } catch (e) {}
   }
 
   function getActiveFace() {
@@ -675,7 +727,7 @@
     if (!listEl) return;
 
     let items = [];
-    try { items = await api.dbGetAll('designs'); } catch (e) {}
+    try { items = (await api.dbGetAll('designs')).filter(it => it.id !== '__autosave__'); } catch (e) {}
     if (searchVal) {
       items = items.filter(it =>
         (it.name || '').toLowerCase().includes(searchVal) ||
@@ -1156,6 +1208,7 @@
 
     const applyUpdate = () => {
       api.applyFaceMaterial(f);
+      scheduleAutosave();
       if (window.StudioCanvas && studioSubMode !== 'edit3d') window.StudioCanvas.render();
       if (window.Studio3DEdit && studioSubMode === 'edit3d') window.Studio3DEdit.rebuildGizmo();
     };
@@ -1269,6 +1322,42 @@
         return;
       }
 
+      // Copiar capa (Ctrl+C) y Pegar en cualquier cara activa (Ctrl+V)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        const lyrC = getSelectedLayer();
+        if (lyrC) {
+          e.preventDefault();
+          copiedLayer = { ...lyrC, crop: lyrC.crop ? [...lyrC.crop] : null };
+          if (window.StudioAudio) window.StudioAudio.playAction('click');
+          api.showToast(`Capa "${lyrC.name || 'Texto'}" copiada (Ctrl+V para pegar en otra cara)`);
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        if (copiedLayer) {
+          e.preventDefault();
+          const targetF = getActiveFace();
+          if (targetF) {
+            api.pushHistory();
+            window.StudioLayers.ensureFaceLayers(targetF);
+            const pasted = {
+              ...copiedLayer,
+              id: window.StudioLayers.genId(copiedLayer.type),
+              crop: copiedLayer.crop ? [...copiedLayer.crop] : null
+            };
+            targetF.layers.push(pasted);
+            selectedLayerId = pasted.id;
+            api.applyFaceMaterial(targetF);
+            api.updateCoverageUI();
+            refreshAllUI();
+            scheduleAutosave();
+            if (window.StudioAudio) window.StudioAudio.playAction('add');
+            api.showToast(`Capa pegada en ${targetF.n}`);
+          }
+        }
+        return;
+      }
+
       const f = getActiveFace();
       const lyr = getSelectedLayer();
       if (!lyr || lyr.locked) return;
@@ -1327,6 +1416,7 @@
 
   function onExternalFaceMutated(faces, skipInspectorRebuild = false) {
     faces.forEach(f => api.applyFaceMaterial(f));
+    scheduleAutosave();
     if (!skipInspectorRebuild) {
       renderLayersPanel();
       renderInspectorPanel();

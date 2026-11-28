@@ -59,7 +59,10 @@
     'lyr-image': `<rect x="3" y="4" width="18" height="16" rx="2" fill="currentColor" fill-opacity="0.14"/><circle cx="8.5" cy="9.5" r="1.5" fill="currentColor"/><path d="m21 16-5-5-6 6"/>`,
     'lyr-sticker': `<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9L12 3Z" fill="currentColor" fill-opacity="0.18"/>`,
     'lyr-text': `<path d="M4 7V5h16v2M12 5v14M9 19h6"/>`,
-    'paint-all': `<path d="M4 13a8 8 0 0 1 16 0" fill="currentColor" fill-opacity="0.15"/><path d="M12 3v3M5 7l2 2M19 7l-2 2"/><path d="M6 13h12v5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-5Z" fill="currentColor" fill-opacity="0.2"/>`
+    'paint-all': `<path d="M4 13a8 8 0 0 1 16 0" fill="currentColor" fill-opacity="0.15"/><path d="M12 3v3M5 7l2 2M19 7l-2 2"/><path d="M6 13h12v5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-5Z" fill="currentColor" fill-opacity="0.2"/>`,
+    'eyedropper': `<path d="m19 5-2-2a2.1 2.1 0 0 0-3 0l-2.5 2.5 5 5L19 8a2.1 2.1 0 0 0 0-3Z" fill="currentColor" fill-opacity="0.22"/><path d="m11.5 5.5 5 5-8 8H5v-3.5l8-8Z" fill="currentColor" fill-opacity="0.12"/><path d="M3 21h4"/>`,
+    'video': `<rect x="3" y="6" width="13" height="12" rx="2" fill="currentColor" fill-opacity="0.15"/><path d="m16 10 5-3v10l-5-3v-4Z" fill="currentColor" fill-opacity="0.2"/>`,
+    'camera': `<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" fill="currentColor" fill-opacity="0.14"/><circle cx="12" cy="14" r="3.2" fill="currentColor" fill-opacity="0.25"/>`
   };
 
   function svg(name, cls = 'w-4 h-4') {

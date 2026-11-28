@@ -1,0 +1,3696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Caja Flip-Top Studio v2 — Diseño 2D/3D y Troquel 1:1</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg-app: #f3ede4;
+      --slider-track: #e2d9cc;
+      --slider-thumb: #9a5b25;
+      --scroll-thumb: rgba(140, 90, 43, 0.28);
+    }
+    html.dark {
+      --bg-app: #121318;
+      --slider-track: #2e313d;
+      --slider-thumb: #f59e0b;
+      --scroll-thumb: rgba(245, 158, 11, 0.35);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      margin: 0;
+      overflow: hidden;
+      background-color: var(--bg-app);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 5px;
+      border-radius: 9999px;
+      background: var(--slider-track);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--slider-thumb);
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--slider-thumb);
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+
+    .label-3d {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: var(--scroll-thumb);
+      border-radius: 9999px;
+    }
+
+    .drop-active {
+      outline: 2px dashed #f59e0b !important;
+      outline-offset: -4px;
+      background-color: rgba(245, 158, 11, 0.12) !important;
+    }
+  </style>
+</head>
+<body class="text-stone-800 dark:text-zinc-100 transition-colors duration-200">
+
+  <!-- ======================================================================== -->
+  <!-- BARRA SUPERIOR                                                           -->
+  <!-- ======================================================================== -->
+  <header class="fixed top-0 left-0 right-0 h-13 z-30 flex items-center justify-between gap-2 px-3 py-2 bg-white/88 dark:bg-zinc-900/90 backdrop-blur-md border-b border-stone-200/90 dark:border-zinc-800 shadow-sm">
+    <!-- Marca -->
+    <div class="flex items-center gap-2.5 min-w-0">
+      <div class="w-8 h-8 rounded-xl bg-amber-600/15 dark:bg-amber-500/20 border border-amber-600/25 flex items-center justify-center text-amber-800 dark:text-amber-400 shrink-0">
+        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+        </svg>
+      </div>
+      <div class="truncate">
+        <h1 class="text-xs sm:text-sm font-bold leading-tight text-stone-900 dark:text-zinc-50 truncate">Caja Flip-Top Studio <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 ml-1">v2.1</span></h1>
+        <p class="hidden md:block text-[10px] text-stone-500 dark:text-zinc-400">13 caras externas (Lado A + B) · Escala real 1:1 mm</p>
+      </div>
+    </div>
+
+    <!-- Switcher de Vista -->
+    <div class="flex items-center bg-stone-100 dark:bg-zinc-800 p-0.5 rounded-xl border border-stone-200/80 dark:border-zinc-700/80 text-[11px] font-semibold">
+      <button data-view="3d" class="view-btn px-2.5 py-1 rounded-lg transition">3D</button>
+      <button data-view="split" class="view-btn hidden sm:inline-block px-2.5 py-1 rounded-lg transition">2D + 3D</button>
+      <button data-view="2d" class="view-btn px-2.5 py-1 rounded-lg transition">Plantilla 2D</button>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="flex items-center gap-1.5">
+      <button id="open-designs-btn" title="Abrir biblioteca de diseños guardados y presets"
+        class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-amber-600/15 dark:bg-amber-500/20 hover:bg-amber-600/25 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 transition">
+        <span>🎨</span>
+        <span>Diseños</span>
+      </button>
+
+      <button id="role-map-btn" title="Resaltar caras Externas (A/B), Internas y Pegado"
+        class="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-100/80 dark:bg-zinc-800 hover:bg-stone-200/80 dark:hover:bg-zinc-700 text-stone-700 dark:text-zinc-200 transition">
+        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+        <span>Mapa Caras</span>
+      </button>
+
+      <button id="theme-toggle-btn" title="Cambiar Modo Claro / Oscuro"
+        class="p-2 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-100/80 dark:bg-zinc-800 hover:bg-stone-200/80 dark:hover:bg-zinc-700 text-stone-700 dark:text-amber-300 transition">
+        <svg id="icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+        </svg>
+        <svg id="icon-moon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+        </svg>
+      </button>
+
+      <button id="toggle-panel-btn" title="Mostrar/Ocultar panel lateral"
+        class="lg:hidden p-2 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-100/80 dark:bg-zinc-800 text-stone-700 dark:text-zinc-200">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================================================================== -->
+  <!-- ÁREA DE TRABAJO PRINCIPAL (3D + EDITOR 2D + PANEL DERECHO)               -->
+  <!-- ======================================================================== -->
+  <main class="fixed inset-0 top-[52px] flex overflow-hidden">
+    <!-- Contenedor de Viewports (2D / 3D) -->
+    <div id="viewports" class="flex-1 flex relative min-w-0 h-full overflow-hidden">
+
+      <!-- PANE 2D INTERACTIVO -->
+      <section id="pane-2d" class="hidden relative flex-1 h-full flex-col border-r border-stone-200/80 dark:border-zinc-800 bg-[#ede6db] dark:bg-[#161821] overflow-hidden">
+        <!-- Toolbar del Editor 2D -->
+        <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-white/80 dark:bg-zinc-900/85 backdrop-blur border-b border-stone-200/80 dark:border-zinc-800 text-[11px] z-10">
+          <div class="flex items-center gap-1 bg-stone-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-stone-200/70 dark:border-zinc-700">
+            <button data-layer2d="both" class="layer2d-btn px-2 py-0.5 rounded-md font-semibold transition">Todas (A+B)</button>
+            <button data-layer2d="A" class="layer2d-btn px-2 py-0.5 rounded-md font-semibold transition">Lado A · Caja</button>
+            <button data-layer2d="B" class="layer2d-btn px-2 py-0.5 rounded-md font-semibold transition">Lado B · Bolsillo</button>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span id="hover-face-badge" class="hidden md:inline-block px-2 py-0.5 rounded-md bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-300 font-medium">Clic o arrastra una imagen sobre cualquier cara</span>
+            <button id="zoom2d-out" class="w-6 h-6 rounded-md bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 font-bold">−</button>
+            <button id="zoom2d-reset" class="px-2 h-6 rounded-md bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 font-medium">Ajustar</button>
+            <button id="zoom2d-in" class="w-6 h-6 rounded-md bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 font-bold">+</button>
+          </div>
+        </div>
+
+        <!-- Canvas 2D -->
+        <div id="canvas2d-wrap" class="relative flex-1 w-full h-full overflow-hidden">
+          <canvas id="canvas-2d" class="block w-full h-full cursor-crosshair"></canvas>
+          <!-- Leyenda inferior 2D -->
+          <div class="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-zinc-900/85 backdrop-blur border border-stone-200/80 dark:border-zinc-800 text-[10px] text-stone-600 dark:text-zinc-300 pointer-events-none">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-blue-500/30 border border-blue-500 inline-block"></span>Lado A (Exterior Caja)</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-orange-500/30 border border-orange-500 inline-block"></span>Lado B (Exterior Bolsillo)</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-stone-400/30 border border-stone-400 inline-block"></span>Interna / Pegado (sin tinta)</span>
+            <span class="hidden xl:inline text-stone-400 dark:text-zinc-500">· Arrastra archivo encima de una cara · Arrastra cara seleccionada para mover</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANE 3D WEBGL -->
+      <section id="pane-3d" class="relative flex-1 h-full overflow-hidden">
+        <div id="canvas-container" class="w-full h-full touch-none"></div>
+        <div id="labels-layer" class="absolute inset-0 pointer-events-none overflow-hidden z-10"></div>
+
+        <!-- Indicador de etapa 3D flotante -->
+        <div id="stage-pill" class="absolute top-3 left-3 z-20 flex items-center gap-2 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border border-stone-200/80 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-[11px] shadow-sm">
+          <span id="stage-dot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+          <span id="stage-text" class="font-medium text-stone-700 dark:text-zinc-200">Caja armada y lista</span>
+        </div>
+
+        <!-- Ayuda interacción 3D -->
+        <div class="hidden sm:flex absolute bottom-3 left-3 z-10 items-center gap-2.5 bg-white/75 dark:bg-zinc-900/75 backdrop-blur-sm border border-stone-200/70 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-[10px] text-stone-600 dark:text-zinc-400 pointer-events-none">
+          <span>🖱️ Rotar</span><span>·</span><span>Scroll: Zoom</span><span>·</span><span>Clic der: Mover</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ====================================================================== -->
+    <!-- PANEL LATERAL DERECHO CON PESTAÑAS                                     -->
+    <!-- ====================================================================== -->
+    <aside id="control-panel"
+      class="fixed lg:static right-0 top-[52px] bottom-0 w-80 sm:w-[340px] z-20 flex flex-col bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-l border-stone-200 dark:border-zinc-800 shadow-2xl lg:shadow-none transition-transform duration-250">
+
+      <!-- Tabs -->
+      <div class="grid grid-cols-3 border-b border-stone-200 dark:border-zinc-800 text-xs font-semibold shrink-0">
+        <button data-tab="design" class="tab-btn py-2.5 border-b-2 transition">Diseño</button>
+        <button data-tab="fold" class="tab-btn py-2.5 border-b-2 transition">3D / Plegado</button>
+        <button data-tab="export" class="tab-btn py-2.5 border-b-2 transition">Exportar</button>
+      </div>
+
+      <!-- Contenido scrolleable -->
+      <div class="flex-1 overflow-y-auto custom-scroll p-3.5 space-y-4">
+
+        <!-- ======================= TAB 1: DISEÑO ======================= -->
+        <div id="tab-design" class="tab-pane space-y-3.5">
+
+          <!-- Selector de Modelo de Caja -->
+          <div class="rounded-xl p-2.5 bg-stone-100/90 dark:bg-zinc-800/70 border border-stone-200 dark:border-zinc-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-zinc-200">Modelo de Caja</span>
+              <span id="model-dims-pill" class="text-[10px] font-semibold text-stone-500 dark:text-zinc-400">Con Encendedor</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px] font-semibold">
+              <button id="model-with-pocket" type="button" class="py-1.5 px-2 rounded-lg border transition">🔥 Con Encendedor</button>
+              <button id="model-no-pocket" type="button" class="py-1.5 px-2 rounded-lg border transition">📦 Sin Encendedor</button>
+            </div>
+            <label class="flex items-center justify-between px-1 pt-0.5 cursor-pointer text-[11px] font-medium text-stone-700 dark:text-zinc-200">
+              <span>🪟 Modelo con Ventanita frontal (35×38 mm)</span>
+              <input id="model-window-toggle" type="checkbox" class="w-4 h-4 accent-amber-600 rounded cursor-pointer" />
+            </label>
+          </div>
+
+          <!-- Bloque Auto-Diseño -->
+          <div id="auto-dropzone" class="rounded-xl p-3 bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200/90 dark:border-amber-500/30 space-y-2 transition">
+            <div class="flex items-center justify-between">
+              <span id="autodesign-title" class="text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">Auto-Diseño (13 Caras)</span>
+              <span id="coverage-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200">0 / 13</span>
+            </div>
+            <p class="text-[11px] text-stone-600 dark:text-zinc-400 leading-snug">
+              Sube o arrastra una imagen aquí: el programa ajusta automáticamente <strong>todas las caras visibles</strong> (Lado A + Bolsillo).
+            </p>
+
+            <div class="grid grid-cols-1 gap-1.5">
+              <label class="w-full text-center cursor-pointer text-xs font-semibold bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white rounded-xl py-2 px-3 shadow-sm active:scale-[0.99] transition">
+                ✨ Cubrir las 13 Caras (Auto-Ajuste)
+                <input id="design-all" type="file" accept="image/*" class="hidden" />
+              </label>
+
+              <div class="grid grid-cols-2 gap-1.5">
+                <label class="text-center cursor-pointer text-[11px] font-semibold bg-stone-800 hover:bg-stone-900 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-white rounded-lg py-1.5 px-2 transition">
+                  🌀 Envoltura Continua
+                  <input id="design-wrap" type="file" accept="image/*" class="hidden" />
+                </label>
+                <button id="design-autofill" class="text-[11px] font-semibold bg-white dark:bg-zinc-800 hover:bg-stone-100 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 text-stone-700 dark:text-zinc-200 rounded-lg py-1.5 px-2 transition" title="Extrae el color dominante de tu imagen y cubre las caras vacías">
+                  🎨 Rellenar Vacías
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1 text-[11px]">
+              <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 dark:text-zinc-300">
+                <input id="smart-orient" type="checkbox" checked class="w-3.5 h-3.5 accent-amber-600 rounded" />
+                <span>Auto-rotar según proporción</span>
+              </label>
+              <button id="design-clear" class="text-[11px] font-medium text-red-600 dark:text-red-400 hover:underline">Limpiar todo</button>
+            </div>
+          </div>
+
+          <!-- Bloque Pintura / Color Base (Capa 0) -->
+          <div class="rounded-xl p-3 bg-stone-50/90 dark:bg-zinc-800/50 border border-stone-200 dark:border-zinc-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-stone-700 dark:text-zinc-200">Pintura / Color Base</span>
+              <span class="text-[10px] text-stone-400 dark:text-zinc-500">Capa 0 (fondo)</span>
+            </div>
+            <div class="flex gap-1.5">
+              <select id="paint-scope" class="flex-1 text-[11px] border border-stone-200 dark:border-zinc-700 rounded-lg px-2 py-1 bg-white dark:bg-zinc-900 text-stone-800 dark:text-zinc-100">
+                <option value="all">Toda la caja (13 caras)</option>
+                <option value="A">Solo Lado A (Caja + Tapa)</option>
+                <option value="B">Solo Lado B (Bolsillo)</option>
+                <option value="selected">Solo cara seleccionada</option>
+                <option value="inner">Interior de la caja</option>
+              </select>
+              <input id="paint-color" type="color" value="#1a242e" class="w-8 h-7 rounded-lg border border-stone-300 dark:border-zinc-600 cursor-pointer bg-transparent shrink-0" title="Color personalizado" />
+              <button id="paint-apply-btn" class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-900 dark:bg-amber-600 dark:hover:bg-amber-500 text-white transition shrink-0">Pintar</button>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <button data-swatch="kraft" title="Cartón Kraft natural (sin pintura)" class="paint-swatch w-6 h-6 rounded-full border-2 border-stone-400 dark:border-zinc-500 text-[9px] font-bold flex items-center justify-center bg-[#d4a373] text-stone-900 hover:scale-110 transition">K</button>
+              <button data-swatch="#18181b" title="Negro Mate" class="paint-swatch w-6 h-6 rounded-full border border-stone-400/60 bg-[#18181b] hover:scale-110 transition"></button>
+              <button data-swatch="#1a242e" title="Azul Noche" class="paint-swatch w-6 h-6 rounded-full border border-stone-400/60 bg-[#1a242e] hover:scale-110 transition"></button>
+              <button data-swatch="#f5f2eb" title="Blanco Hueso" class="paint-swatch w-6 h-6 rounded-full border border-stone-300 bg-[#f5f2eb] hover:scale-110 transition"></button>
+              <button data-swatch="#4c1d24" title="Burdeo" class="paint-swatch w-6 h-6 rounded-full border border-stone-400/60 bg-[#4c1d24] hover:scale-110 transition"></button>
+              <button data-swatch="#1b3a2d" title="Verde Bosque" class="paint-swatch w-6 h-6 rounded-full border border-stone-400/60 bg-[#1b3a2d] hover:scale-110 transition"></button>
+              <button data-swatch="#2d3139" title="Grafito" class="paint-swatch w-6 h-6 rounded-full border border-stone-400/60 bg-[#2d3139] hover:scale-110 transition"></button>
+              <button data-swatch="#caa368" title="Dorado Mate" class="paint-swatch w-6 h-6 rounded-full border border-stone-400/60 bg-[#caa368] hover:scale-110 transition"></button>
+            </div>
+          </div>
+
+          <!-- Diferenciación de Caras: Externas A, Externas B e Internas -->
+          <div class="space-y-2.5">
+            <!-- LADO A -->
+            <details open class="group rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50/70 dark:bg-zinc-800/40 overflow-hidden">
+              <summary class="flex items-center justify-between px-3 py-2 cursor-pointer text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-500/10">
+                <span id="title-side-a">Externas · Lado A — Caja y Tapa (9)</span>
+                <span class="text-[10px] opacity-75">▾</span>
+              </summary>
+              <div id="list-side-a" class="p-2 space-y-1"></div>
+            </details>
+
+            <!-- LADO B -->
+            <details id="section-side-b" open class="group rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50/70 dark:bg-zinc-800/40 overflow-hidden">
+              <summary class="flex items-center justify-between px-3 py-2 cursor-pointer text-[11px] font-bold uppercase tracking-wider text-orange-700 dark:text-orange-400 bg-orange-50/70 dark:bg-orange-500/10">
+                <span>Externas · Lado B — Bolsillo (4)</span>
+                <span class="text-[10px] opacity-75">▾</span>
+              </summary>
+              <div class="px-2.5 pt-1.5 text-[10px] text-orange-700/80 dark:text-orange-300/80">
+                Doblez montaña (-90°): visibles en el reverso de la hoja.
+              </div>
+              <div id="list-side-b" class="p-2 space-y-1"></div>
+            </details>
+
+            <!-- INTERNAS Y PEGADO -->
+            <details class="group rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50/70 dark:bg-zinc-800/40 overflow-hidden">
+              <summary class="flex items-center justify-between px-3 py-2 cursor-pointer text-[11px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-400 bg-stone-100/80 dark:bg-zinc-800/80">
+                <span>Internas y Pegado (Ocultas)</span>
+                <span class="text-[10px] opacity-75">▾</span>
+              </summary>
+              <div class="p-2.5 space-y-2 text-[11px] text-stone-600 dark:text-zinc-400">
+                <p class="leading-snug">
+                  <strong>Lateral Der. Cuerpo</strong> (encerrada entre caja y bolsillo), reversos interiores y <strong>9 pestañas de pegado</strong> quedan protegidas sin diseño.
+                </p>
+                <div class="flex items-center justify-between gap-2 pt-1 border-t border-stone-200 dark:border-zinc-700">
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input id="inner-custom-toggle" type="checkbox" class="w-3.5 h-3.5 accent-amber-600 rounded" />
+                    <span>Teñir interior de caja</span>
+                  </label>
+                  <input id="inner-color-picker" type="color" value="#1f2026" class="w-7 h-6 rounded border border-stone-300 dark:border-zinc-600 cursor-pointer bg-transparent" />
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <!-- Ajuste fino de la cara seleccionada -->
+          <div class="rounded-xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/50 p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-300">Ajuste de Cara</span>
+              <span id="sel-side-pill" class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-stone-100 dark:bg-zinc-700 text-stone-600 dark:text-zinc-300">Todas</span>
+            </div>
+            <select id="design-sel" class="w-full text-xs border border-stone-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 bg-white dark:bg-zinc-900 text-stone-800 dark:text-zinc-100"></select>
+
+            <div class="relative rounded-lg border border-stone-200 dark:border-zinc-700 bg-stone-100 dark:bg-zinc-950 p-1.5 flex items-center justify-center">
+              <canvas id="design-prev" class="max-w-full rounded" style="max-height:150px;object-fit:contain"></canvas>
+            </div>
+
+            <div class="grid grid-cols-5 gap-1 text-xs">
+              <button id="d-rotl" class="bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 rounded-lg py-1" title="Girar -90°">↺</button>
+              <button id="d-rotr" class="bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 rounded-lg py-1" title="Girar +90°">↻</button>
+              <button id="d-fh" class="bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 rounded-lg py-1" title="Espejar horizontal">⇋</button>
+              <button id="d-fv" class="bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 rounded-lg py-1" title="Espejar vertical">⇅</button>
+              <button id="d-autofit" class="bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 border border-amber-300 dark:border-amber-500/40 text-amber-900 dark:text-amber-300 rounded-lg py-1 text-[10px] font-bold" title="Auto-ajustar proporción">Fit</button>
+            </div>
+
+            <div class="space-y-1.5 text-[11px] text-stone-600 dark:text-zinc-400">
+              <label class="block">
+                <div class="flex justify-between"><span>Zoom</span><span id="d-zoom-v" class="font-semibold">100%</span></div>
+                <input id="d-zoom" type="range" min="10" max="300" step="1" value="100" class="w-full" />
+              </label>
+              <label class="block">
+                <div class="flex justify-between"><span>Mover horizontal</span><span id="d-ox-v" class="font-semibold">0</span></div>
+                <input id="d-ox" type="range" min="-100" max="100" step="1" value="0" class="w-full" />
+              </label>
+              <label class="block">
+                <div class="flex justify-between"><span>Mover vertical</span><span id="d-oy-v" class="font-semibold">0</span></div>
+                <input id="d-oy" type="range" min="-100" max="100" step="1" value="0" class="w-full" />
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-1">
+              <label class="flex items-center gap-1.5 text-[11px] text-stone-600 dark:text-zinc-400">
+                <span>Color fondo cara:</span>
+                <input id="d-bgcolor" type="color" value="#ffffff" class="w-6 h-5 rounded border border-stone-300 dark:border-zinc-600 cursor-pointer bg-transparent" />
+              </label>
+              <button id="d-reset" class="text-[11px] px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 font-medium">Restablecer</button>
+            </div>
+
+            <!-- Capa 2: Stickers / PNGs con transparencia -->
+            <div class="pt-2.5 mt-2 border-t border-stone-200 dark:border-zinc-700 space-y-2">
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-300">Stickers / PNG</span>
+                <div class="flex items-center gap-1">
+                  <button id="open-stickers-btn" type="button" class="text-[10px] font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-md px-2 py-0.5 transition">✨ Galería</button>
+                  <label class="cursor-pointer text-[10px] font-semibold bg-stone-700 dark:bg-zinc-700 hover:bg-stone-800 dark:hover:bg-zinc-600 text-white rounded-md px-2 py-0.5 transition">
+                    + Subir
+                    <input id="sticker-upload" type="file" accept="image/png,image/webp,image/svg+xml,image/*" class="hidden" />
+                  </label>
+                </div>
+              </div>
+              <div id="sticker-list" class="space-y-1 text-[11px]"></div>
+              <div id="sticker-controls" class="hidden space-y-1.5 p-2 rounded-lg bg-stone-50 dark:bg-zinc-900/70 border border-stone-200 dark:border-zinc-700 text-[11px] text-stone-600 dark:text-zinc-400">
+                <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-stone-200 dark:border-zinc-700">
+                  <label class="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-stone-700 dark:text-zinc-200">
+                    <input id="st-tint-toggle" type="checkbox" class="w-3.5 h-3.5 accent-amber-600 rounded" />
+                    <span>Cambiar color</span>
+                  </label>
+                  <div class="flex items-center gap-1">
+                    <button data-stcolor="#ffffff" class="st-swatch w-4 h-4 rounded-full border border-stone-400 bg-white"></button>
+                    <button data-stcolor="#caa368" class="st-swatch w-4 h-4 rounded-full border border-stone-400 bg-[#caa368]"></button>
+                    <button data-stcolor="#84cc16" class="st-swatch w-4 h-4 rounded-full border border-stone-400 bg-[#84cc16]"></button>
+                    <button data-stcolor="#ef4444" class="st-swatch w-4 h-4 rounded-full border border-stone-400 bg-[#ef4444]"></button>
+                    <input id="st-tint-color" type="color" value="#caa368" class="w-6 h-5 rounded border border-stone-300 dark:border-zinc-600 cursor-pointer bg-transparent" />
+                  </div>
+                </div>
+                <label class="block">
+                  <div class="flex justify-between"><span>Tamaño</span><span id="st-scale-v" class="font-semibold">55%</span></div>
+                  <input id="st-scale" type="range" min="3" max="200" step="1" value="55" class="w-full" />
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="block">
+                    <div class="flex justify-between"><span>Pos X</span><span id="st-x-v">0</span></div>
+                    <input id="st-x" type="range" min="-100" max="100" step="1" value="0" class="w-full" />
+                  </label>
+                  <label class="block">
+                    <div class="flex justify-between"><span>Pos Y</span><span id="st-y-v">0</span></div>
+                    <input id="st-y" type="range" min="-100" max="100" step="1" value="0" class="w-full" />
+                  </label>
+                </div>
+                <label class="block">
+                  <div class="flex justify-between"><span>Rotación</span><span id="st-rot-v">0°</span></div>
+                  <input id="st-rot" type="range" min="-180" max="180" value="0" class="w-full" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================= TAB 2: 3D / PLEGADO ======================= -->
+        <div id="tab-fold" class="tab-pane hidden space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="fold-slider" class="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400">Armado / Despliegue</label>
+              <span id="fold-percent" class="text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-full">100%</span>
+            </div>
+            <input id="fold-slider" type="range" min="0" max="100" step="0.2" value="100" class="w-full mb-3" />
+
+            <div class="grid grid-cols-3 gap-2">
+              <button id="play-btn" class="flex items-center justify-center gap-1 bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white text-xs font-semibold py-2 px-2 rounded-xl shadow-sm active:scale-95 transition">
+                <svg id="play-icon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                <span id="play-text">Animar</span>
+              </button>
+              <button id="flat-btn" class="bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 text-stone-700 dark:text-zinc-200 text-xs font-semibold py-2 px-2 rounded-xl border border-stone-200 dark:border-zinc-700 transition">Plano 2D</button>
+              <button id="assembled-btn" class="bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 text-stone-700 dark:text-zinc-200 text-xs font-semibold py-2 px-2 rounded-xl border border-stone-200 dark:border-zinc-700 transition">Armado 3D</button>
+            </div>
+
+            <div class="mt-3">
+              <div class="flex items-center justify-between mb-1">
+                <label for="speed-slider" class="text-[11px] font-semibold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Velocidad</label>
+                <span id="speed-label" class="text-xs font-bold text-stone-700 dark:text-zinc-200">1× · 4,2 s</span>
+              </div>
+              <input id="speed-slider" type="range" min="25" max="300" step="25" value="100" class="w-full" />
+            </div>
+          </div>
+
+          <hr class="border-stone-200 dark:border-zinc-800" />
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="lid-slider" class="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400">Abrir / Cerrar Tapa</label>
+              <span id="lid-angle-label" class="text-xs font-bold text-stone-700 dark:text-zinc-200">0°</span>
+            </div>
+            <input id="lid-slider" type="range" min="0" max="110" step="1" value="0" class="w-full" />
+          </div>
+
+          <hr class="border-stone-200 dark:border-zinc-800" />
+
+          <div>
+            <span class="block text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-zinc-400 mb-2">Cámaras Rápidas</span>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              <button data-cam="3d" class="cam-btn bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 py-1.5 px-2.5 rounded-lg border border-stone-200 dark:border-zinc-700 font-medium">Perspectiva 3D</button>
+              <button data-cam="top" class="cam-btn bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 py-1.5 px-2.5 rounded-lg border border-stone-200 dark:border-zinc-700 font-medium">Cenital 2D</button>
+              <button data-cam="front" class="cam-btn bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 py-1.5 px-2.5 rounded-lg border border-stone-200 dark:border-zinc-700 font-medium">Vista Frente</button>
+              <button data-cam="back" class="cam-btn bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 py-1.5 px-2.5 rounded-lg border border-stone-200 dark:border-zinc-700 font-medium">Vista Espalda</button>
+              <button data-cam="pocket" class="cam-btn col-span-2 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 py-1.5 px-2.5 rounded-lg border border-stone-200 dark:border-zinc-700 font-medium">Enfocar Bolsillo Encendedor</button>
+            </div>
+          </div>
+
+          <hr class="border-stone-200 dark:border-zinc-800" />
+
+          <div class="space-y-2.5 text-xs">
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="font-medium text-stone-700 dark:text-zinc-300">Mostrar Encendedor 3D (BIC J6)</span>
+              <input id="toggle-lighter" type="checkbox" checked class="w-4 h-4 accent-amber-600 rounded" />
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="font-medium text-stone-700 dark:text-zinc-300">Etiquetas 3D</span>
+              <input id="toggle-labels" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
+            </label>
+          </div>
+        </div>
+
+        <!-- ======================= TAB 3: EXPORTAR ======================= -->
+        <div id="tab-export" class="tab-pane hidden space-y-4">
+          <div class="rounded-xl p-3 bg-stone-50 dark:bg-zinc-800/60 border border-stone-200 dark:border-zinc-700 text-[11px] space-y-2">
+            <div class="font-bold text-stone-800 dark:text-zinc-100">Impresión 1:1 en Milímetros</div>
+            <p class="text-stone-600 dark:text-zinc-400 leading-snug">
+              Porque el bolsillo usa doblez montaña (-90°), el diseño exterior se imprime en <strong>2 caras de la misma hoja</strong>:
+            </p>
+            <ul class="list-disc pl-4 space-y-1 text-stone-600 dark:text-zinc-400">
+              <li><strong>Lado A:</strong> Las 9 caras externas de la caja y tapa + líneas de corte/doblez.</li>
+              <li><strong>Lado B (espejado):</strong> Las 4 caras externas del bolsillo alineadas para impresión doble cara.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2.5 text-xs">
+            <label class="block space-y-1">
+              <span class="font-semibold text-stone-700 dark:text-zinc-200">Tamaño de hoja (PDF 1:1)</span>
+              <select id="pdf-paper-size" class="w-full border border-stone-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-zinc-900 text-xs font-medium">
+                <option value="a4" selected>A4 Horizontal · 297 × 210 mm (Recomendado)</option>
+                <option value="letter">Carta / Letter Horizontal · 279 × 216 mm</option>
+                <option value="legal">Oficio / Legal Horizontal · 356 × 216 mm</option>
+                <option value="a3">A3 Horizontal · 420 × 297 mm</option>
+              </select>
+              <span class="block text-[10px] text-emerald-700 dark:text-emerald-400">✓ La plantilla mide 256 × 172 mm: entra al 100% real en todas estas hojas.</span>
+            </label>
+
+            <label class="flex items-center justify-between">
+              <span class="font-medium text-stone-700 dark:text-zinc-300">Sangrado de corte (bleed)</span>
+              <select id="export-bleed" class="border border-stone-200 dark:border-zinc-700 rounded-lg px-2 py-1 bg-white dark:bg-zinc-900 text-xs">
+                <option value="0" selected>0 mm (limpio, sin bordes)</option>
+                <option value="2">2 mm (sangrado extra)</option>
+              </select>
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="font-medium text-stone-700 dark:text-zinc-300">Incluir etiquetas de guía (solo SVG)</span>
+              <input id="export-labels" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
+            </label>
+          </div>
+
+          <!-- Exportar PDF listo para imprimir y recortar (sin texto, sin bordes, sin espejo) -->
+          <div class="rounded-xl p-3 bg-emerald-50/70 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">PDF Limpio 1:1 (Sin texto · Sin bordes · Sin espejo)</div>
+            <button id="download-pdf-duplex" class="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 px-3 rounded-xl shadow-sm active:scale-[0.99] transition">
+              <span>📄 Descargar PDF Completo (Lado A + B)</span>
+            </button>
+            <button id="download-pdf-a" class="w-full flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 hover:bg-stone-100 dark:hover:bg-zinc-700 text-stone-800 dark:text-zinc-100 text-xs font-semibold py-2 px-3 rounded-xl border border-stone-200 dark:border-zinc-700 active:scale-[0.99] transition">
+              <span>📄 Descargar PDF Solo Lado A (1 Página)</span>
+            </button>
+          </div>
+
+          <!-- Exportar SVG vectorial -->
+          <div class="space-y-1.5">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Vectores SVG (Plotter / Illustrator)</div>
+            <button id="download-svg-a" class="w-full flex items-center justify-center gap-2 bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white text-xs font-semibold py-2 px-4 rounded-xl shadow-sm active:scale-[0.99] transition">
+              <span>⬇ SVG Lado A — Caja + Tapa (con Arte)</span>
+            </button>
+            <button id="download-svg-b" class="w-full flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold py-2 px-4 rounded-xl shadow-sm active:scale-[0.99] transition">
+              <span>⬇ SVG Lado B — Bolsillo Espejado (Doble Cara)</span>
+            </button>
+            <button id="download-svg-clean" class="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-semibold py-2 px-4 rounded-xl border border-stone-700 active:scale-[0.99] transition">
+              <span>⬇ SVG Troquel Limpio (Solo Líneas)</span>
+            </button>
+          </div>
+
+          <div class="rounded-xl p-3 bg-stone-50 dark:bg-zinc-800/50 border border-stone-200 dark:border-zinc-800 text-[11px] space-y-1.5">
+            <div class="font-semibold text-stone-700 dark:text-zinc-200">Código de Plantilla:</div>
+            <div class="flex items-center gap-2"><span class="w-5 h-0.5 bg-stone-900 dark:bg-zinc-100 inline-block"></span><span>Línea de corte continuo</span></div>
+            <div class="flex items-center gap-2"><span class="w-5 border-t-2 border-dashed border-blue-600 inline-block"></span><span>Doblez Valle (+90° hacia adentro)</span></div>
+            <div class="flex items-center gap-2"><span class="w-5 border-t-2 border-dashed border-orange-500 inline-block"></span><span>Doblez Montaña (-90° inverso bolsillo)</span></div>
+          </div>
+
+          <div class="pt-2 border-t border-stone-200 dark:border-zinc-800 flex justify-between text-[10px] text-stone-500 dark:text-zinc-400">
+            <span>Caja: 55×24×88 mm</span>
+            <span>Bolsillo BIC J6: 27×24×83 mm</span>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+  </main>
+
+  <!-- ======================================================================== -->
+  <!-- MODAL: BIBLIOTECA DE DISEÑOS (PRESETS + MIS DISEÑOS EN INDEXEDDB)        -->
+  <!-- ======================================================================== -->
+  <div id="designs-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-6 bg-black/55 backdrop-blur-sm">
+    <div class="w-full max-w-3xl max-h-[86vh] flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 shadow-2xl overflow-hidden">
+      <!-- Header modal -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-zinc-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🎨</span>
+          <div>
+            <h2 class="text-sm font-bold text-stone-900 dark:text-zinc-50">Biblioteca de Diseños</h2>
+            <p class="text-[11px] text-stone-500 dark:text-zinc-400">Guarda, carga, exporta o aplica diseños completos (13 caras + pintura + stickers)</p>
+          </div>
+        </div>
+        <button id="close-designs-btn" class="w-8 h-8 rounded-xl bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 text-stone-600 dark:text-zinc-300 font-bold">✕</button>
+      </div>
+
+      <!-- Barra de guardado / importación -->
+      <div class="flex flex-wrap items-center gap-2 px-4 py-3 bg-stone-50/90 dark:bg-zinc-800/50 border-b border-stone-200 dark:border-zinc-800">
+        <input id="save-design-name" type="text" placeholder="Nombre para guardar el diseño actual..." class="flex-1 min-w-[180px] text-xs px-3 py-2 rounded-xl border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-stone-800 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-amber-500" />
+        <button id="save-design-btn" class="text-xs font-semibold px-3.5 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white shadow-sm transition">💾 Guardar actual</button>
+        <label class="cursor-pointer text-xs font-semibold px-3 py-2 rounded-xl bg-stone-200/80 dark:bg-zinc-700 hover:bg-stone-300/80 dark:hover:bg-zinc-600 text-stone-800 dark:text-zinc-100 transition">
+          📂 Importar .json
+          <input id="import-design-json" type="file" accept=".json,application/json" class="hidden" />
+        </label>
+      </div>
+
+      <!-- Contenido scrolleable -->
+      <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-5">
+        <!-- Sección 1: Colección Preinstalada -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">Colección de Diseños (Presets)</h3>
+            <span class="text-[10px] text-stone-400 dark:text-zinc-500">13 caras a medida · 305 DPI</span>
+          </div>
+          <div id="presets-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Tarjeta Celestial -->
+            <div class="group rounded-xl border border-[#caa368]/40 bg-[#1a242e] text-zinc-100 overflow-hidden shadow-md flex flex-col">
+              <div class="h-32 bg-[#141c24] flex items-center justify-center gap-3 p-3 relative overflow-hidden">
+                <img src="skins/celestial/front.png" alt="Frente Celestial" class="h-full rounded shadow-lg border border-[#caa368]/40 object-contain" />
+                <img src="skins/celestial/back.png" alt="Espalda Celestial" class="h-full rounded shadow-lg border border-[#caa368]/40 object-contain" />
+                <span class="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#caa368]/20 text-[#e5c287] border border-[#caa368]/40">13 Caras</span>
+              </div>
+              <div class="p-3 flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-bold text-[#f0d6a7]">Celestial Dorado & Azul Noche</div>
+                  <div class="text-[10px] text-zinc-400">Soles al frente · Marco en espalda · Bolsillo a medida</div>
+                </div>
+                <button data-preset="skins/celestial/skin.json" class="apply-preset-btn shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-[#caa368] hover:bg-[#d8b47c] text-[#1a242e] transition">Aplicar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección 2: Mis Diseños Guardados -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-300">Mis Diseños Guardados</h3>
+            <span id="saved-count-badge" class="text-[10px] text-stone-400 dark:text-zinc-500">0 guardados</span>
+          </div>
+          <div id="saved-designs-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================== -->
+  <!-- MODAL: GALERÍA DE STICKERS (FORMAS, BANDAS, POP, MONSTER, MIS PNGS)      -->
+  <!-- ======================================================================== -->
+  <div id="stickers-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-6 bg-black/55 backdrop-blur-sm">
+    <div class="w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-zinc-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">✨</span>
+          <div>
+            <h2 class="text-sm font-bold text-stone-900 dark:text-zinc-50">Galería de Stickers & PNGs</h2>
+            <p class="text-[11px] text-stone-500 dark:text-zinc-400">Haz clic en cualquier sticker para insertarlo en la cara activa (recoloreable en vivo)</p>
+          </div>
+        </div>
+        <button id="close-stickers-btn" class="w-8 h-8 rounded-xl bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 text-stone-600 dark:text-zinc-300 font-bold">✕</button>
+      </div>
+
+      <!-- Pestañas de categoría + Subir a biblioteca -->
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-stone-50 dark:bg-zinc-800/60 border-b border-stone-200 dark:border-zinc-800">
+        <div class="flex flex-wrap items-center gap-1 text-[11px] font-semibold">
+          <button data-stcat="shapes" class="stcat-btn px-2.5 py-1 rounded-lg transition">⭐ Formas</button>
+          <button data-stcat="bands" class="stcat-btn px-2.5 py-1 rounded-lg transition">🤘 Bandas</button>
+          <button data-stcat="pop" class="stcat-btn px-2.5 py-1 rounded-lg transition">🛸 Rick & Morty</button>
+          <button data-stcat="monster" class="stcat-btn px-2.5 py-1 rounded-lg transition">⚡ Monster</button>
+          <button data-stcat="custom" class="stcat-btn px-2.5 py-1 rounded-lg transition">💾 Mis PNGs</button>
+        </div>
+        <label class="cursor-pointer text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white transition">
+          + Guardar PNG en Biblioteca
+          <input id="save-custom-sticker" type="file" accept="image/png,image/webp,image/svg+xml,image/*" class="hidden" />
+        </label>
+      </div>
+
+      <!-- Grid de Stickers -->
+      <div id="stickers-grid" class="flex-1 overflow-y-auto custom-scroll p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-stone-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-semibold px-4 py-2.5 rounded-full shadow-xl opacity-0 pointer-events-none transition-all duration-300 translate-y-2">
+    Listo
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. CONFIGURACIÓN GEOMÉTRICA EXACTA (EN MILÍMETROS · 1 unidad = 1 mm)
+     * ============================================================================
+     */
+    const DIM = {
+      W: 55,
+      D: 24,
+      H: 88,
+      H_front: 62,
+      H_hinge: 66,
+      get H_lid_back() { return this.H - this.H_hinge; },   // 22 mm
+      get H_lid_front() { return this.H - this.H_front; },  // 26 mm
+      get diffH() { return this.H_hinge - this.H_front; },  // 4 mm
+      Lw: 27,
+      Ld: 24,
+      Lh: 83,
+      T_base: 10,
+      T_side_base: 14,
+      T_glue: 10,
+      T_pflap: 8,
+      T_lid_glue: 8,
+      chamfer: 3
+    };
+
+    const state = {
+      fold: 1.0,              // Inicia armada en 3D para feedback inmediato
+      lidOpen: 0.0,
+      isPlaying: false,
+      speed: 1,
+      playDirection: -1,
+      hasPocket: true,        // true = Con Encendedor, false = Sin Encendedor (Caja Clásica)
+      hasWindow: false,       // true = Ventanita calada frontal (35×38 mm)
+      showLighter: true,
+      showLabels: false,
+      viewMode: 'split',      // '3d' | 'split' | '2d'
+      layer2D: 'both',        // 'both' | 'A' | 'B'
+      dark: false,
+      roleMapMode: false,
+      innerCustomColor: false,
+      innerColorHex: '#1f2026',
+      smartOrient: true,
+      panelOpenMobile: false
+    };
+
+    // Geometría de la ventanita frontal (centrada en Frente Cuerpo 55×62 mm)
+    const WIN = { mx: 10, my: 12, w: 35, h: 38, r: 4 };
+
+    // Referencias Three.js
+    let scene, camera, renderer, hemiLight, dirLight, fillLight, matPlane, gridHelper;
+    let rootAssembly, rootPivot, lighterGroup;
+    let hinges = {};
+    let panels = {};        // Mapa de los 23 paneles (externos, internos y pestañas)
+    let labelAnchors = [];
+    let cachedLidSlider = null;
+
+    const orbit = {
+      theta: 0.58,
+      phi: 1.12,
+      radius: 215,
+      target: new THREE.Vector3(8, 42, 12),
+      desiredTheta: 0.58,
+      desiredPhi: 1.12,
+      desiredRadius: 215,
+      desiredTarget: new THREE.Vector3(8, 42, 12),
+      isDragging: false,
+      isPanning: false,
+      lastX: 0,
+      lastY: 0,
+      lastPinchDist: 0
+    };
+
+    /**
+     * ============================================================================
+     * 2. CATÁLOGO MAESTRO DE CARAS (DIFERENCIACIÓN EXTERNA A/B vs INTERNA vs PEGADO)
+     * ============================================================================
+     */
+    const EXTERNAL_FACES = (() => {
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, diffH, Lw, Lh, T_lid_glue } = DIM;
+      const lidBaseY = -H_hinge;                 // -66
+      const lidTopY = -H_hinge - H_lid_back;     // -88
+      const lidRoofY = lidTopY - D;              // -112
+      const lidFrontY = lidRoofY - H_lid_front;  // -138
+      const px0 = W + D;                         // 79
+      const px1 = px0 + Lw;                      // 106
+      const px2 = px1 + D;                       // 130
+      const px3 = px2 + Lw;                      // 157
+
+      const P = W + Lw + D + Lw + W + D; // 212
+      const Htot = DIM.H; // 88
+
+      return [
+        // --- LADO A: CARAS EXTERNAS DE CAJA Y TAPA (outerMesh) ---
+        {
+          k: 'front', n: 'Frente Cuerpo', side: 'A', meshKey: 'outer',
+          w: W, h: H_front, b: [-W, 0, 0, H_front], dh: 1, dv: 0,
+          poly2D: [[-D, 0], [-D, -H_front], [-D - W, -H_front], [-D - W, 0]],
+          wrap: [0 / P, (Htot - H_front) / Htot, W / P, 1]
+        },
+        {
+          k: 'lidFront', n: 'Frente Tapa', side: 'A', meshKey: 'outer',
+          w: W, h: H_lid_front, b: [0, W, 0, H_lid_front], dh: 0, dv: 1,
+          poly2D: [[0, lidRoofY], [W, lidRoofY], [W, lidFrontY], [0, lidFrontY]],
+          wrap: [0 / P, 0, W / P, H_lid_front / Htot]
+        },
+        {
+          k: 'top', n: 'Techo Tapa', side: 'A', meshKey: 'outer',
+          w: W, h: D, b: [0, W, 0, D], dh: 0, dv: 1,
+          poly2D: [[0, lidTopY], [W, lidTopY], [W, lidRoofY], [0, lidRoofY]],
+          wrap: [0 / P, 0, W / P, D / Htot]
+        },
+        {
+          k: 'back', n: 'Espalda Cuerpo', side: 'A', meshKey: 'outer',
+          w: W, h: H_hinge, b: [0, W, 0, H_hinge], dh: 1, dv: 0,
+          poly2D: [[0, 0], [W, 0], [W, -H_hinge], [0, -H_hinge]],
+          wrap: [(W + Lw + D + Lw) / P, (Htot - H_hinge) / Htot, (W + Lw + D + Lw + W) / P, 1]
+        },
+        {
+          k: 'lidBack', n: 'Espalda Tapa', side: 'A', meshKey: 'outer',
+          w: W, h: H_lid_back, b: [0, W, 0, H_lid_back], dh: 1, dv: 0,
+          poly2D: [[0, lidBaseY], [W, lidBaseY], [W, lidTopY], [0, lidTopY]],
+          wrap: [(W + Lw + D + Lw) / P, 0, (W + Lw + D + Lw + W) / P, H_lid_back / Htot]
+        },
+        {
+          k: 'left', n: 'Lateral Izq. Cuerpo', side: 'A', meshKey: 'outer',
+          w: D, h: H_hinge, b: [-D, 0, 0, H_hinge], dh: 1, dv: 0,
+          poly2D: [[0, 0], [0, -H_hinge], [-D, -H_front], [-D, 0]],
+          wrap: [(P - D) / P, (Htot - H_hinge) / Htot, 1, 1]
+        },
+        {
+          k: 'right', n: 'Lateral Der. Cuerpo', side: 'A', meshKey: 'outer', onlyWithoutPocket: true,
+          w: D, h: H_hinge, b: [0, D, 0, H_hinge], dh: 1, dv: 0,
+          poly2D: [[W, 0], [W + D, 0], [W + D, -H_front], [W, -H_hinge]],
+          wrap: [W / P, (Htot - H_hinge) / Htot, (W + D) / P, 1]
+        },
+        {
+          k: 'lidLeft', n: 'Lateral Izq. Tapa', side: 'A', meshKey: 'outer',
+          w: D, h: H_lid_front, b: [-D, 0, -diffH, H_lid_back], dh: 1, dv: 0,
+          poly2D: [[0, lidBaseY], [0, lidTopY], [-D, lidTopY], [-D, lidBaseY + diffH]],
+          wrap: [(P - D) / P, 0, 1, H_lid_front / Htot]
+        },
+        {
+          k: 'lidRight', n: 'Lateral Der. Tapa', side: 'A', meshKey: 'outer',
+          w: D, h: H_lid_front, b: [0, D, -diffH, H_lid_back], dh: 1, dv: 0,
+          poly2D: [[W, lidBaseY], [W + D, lidBaseY + diffH], [W + D, lidTopY], [W, lidTopY]],
+          wrap: [W / P, 0, (W + D) / P, H_lid_front / Htot]
+        },
+        {
+          k: 'base', n: 'Base Caja', side: 'A', meshKey: 'outer',
+          w: W, h: D, b: [0, W, -D, 0], dh: 0, dv: 1,
+          poly2D: [[0, 0], [W, 0], [W, D], [0, D]],
+          wrap: [0 / P, (Htot - D) / Htot, W / P, 1]
+        },
+
+        // --- LADO B: 4 CARAS EXTERNAS DEL BOLSILLO (solo si state.hasPocket === true) ---
+        {
+          k: 'pocketFront', n: 'Frente Bolsillo', side: 'B', meshKey: 'inner', onlyWithPocket: true,
+          w: Lw, h: Lh, b: [0, Lw, 0, Lh], dh: 0, dv: 0,
+          poly2D: [[px0, 0], [px1, 0], [px1, -Lh], [px0 + T_lid_glue + 1, -Lh], [px0 + T_lid_glue + 1, -(H_front - 1)], [px0, -(H_front - 1)]],
+          wrap: [W / P, (Htot - Lh) / Htot, (W + Lw) / P, 1]
+        },
+        {
+          k: 'pocketOuter', n: 'Exterior Bolsillo', side: 'B', meshKey: 'inner', onlyWithPocket: true,
+          w: D, h: Lh, b: [0, D, 0, Lh], dh: 0, dv: 0,
+          poly2D: [[px1, 0], [px2, 0], [px2, -Lh], [px1, -Lh]],
+          wrap: [(W + Lw) / P, (Htot - Lh) / Htot, (W + Lw + D) / P, 1]
+        },
+        {
+          k: 'pocketBack', n: 'Espalda Bolsillo', side: 'B', meshKey: 'inner', onlyWithPocket: true,
+          w: Lw, h: Lh, b: [0, Lw, 0, Lh], dh: 0, dv: 0,
+          poly2D: [[px2, 0], [px3, 0], [px3, -Lh], [px2, -Lh]],
+          wrap: [(W + Lw + D) / P, (Htot - Lh) / Htot, (W + Lw + D + Lw) / P, 1]
+        },
+        {
+          k: 'pocketBase', n: 'Base Bolsillo', side: 'B', meshKey: 'inner', onlyWithPocket: true,
+          w: D, h: Lw, b: [0, D, -Lw, 0], dh: 0, dv: 0,
+          poly2D: [[px1, 0], [px2, 0], [px2, Lw], [px1, Lw]],
+          wrap: [(W + Lw) / P, (Htot - Lw) / Htot, (W + Lw + D) / P, 1]
+        }
+      ];
+    })();
+
+    function getActiveExternalFaces() {
+      return EXTERNAL_FACES.filter(f => {
+        if (f.onlyWithPocket && !state.hasPocket) return false;
+        if (f.onlyWithoutPocket && state.hasPocket) return false;
+        return true;
+      });
+    }
+
+    // Polígonos 2D de zonas internas / pegado (para visualización en Editor 2D)
+    const STRUCTURAL_POLYS_2D = (() => {
+      const { W, D, H_front, H_hinge, H_lid_back, diffH, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer: c } = DIM;
+      const lidBaseY = -H_hinge;
+      const lidTopY = -H_hinge - H_lid_back;
+      const px0 = W + D, px1 = px0 + Lw, px2 = px1 + D, px3 = px2 + Lw;
+      return {
+        enclosed: [
+          { n: 'Lat. Der. (Interna)', poly: [[W, 0], [W + D, 0], [W + D, -H_front], [W, -H_hinge]] }
+        ],
+        glue: [
+          [[0, D], [W, D], [W - c, D + T_base], [c, D + T_base]],
+          [[-D, 0], [0, 0], [-c, T_side_base], [-D + c, T_side_base]],
+          [[W, 0], [W + D, 0], [W + D - c, T_side_base], [W + c, T_side_base]],
+          [[-D - W, 0], [-D - W, -H_front], [-D - W - T_glue, -H_front + c], [-D - W - T_glue, -c]],
+          [[-D, lidBaseY + diffH], [-D, lidTopY], [-D - T_lid_glue, lidTopY + c], [-D - T_lid_glue, lidBaseY + diffH - c]],
+          [[W + D, lidBaseY + diffH], [W + D + T_lid_glue, lidBaseY + diffH - c], [W + D + T_lid_glue, lidTopY + c], [W + D, lidTopY]],
+          [[px3, 0], [px3 + T_glue, -c], [px3 + T_glue, -Lh + c], [px3, -Lh]],
+          [[px1, 0], [px1, Lw], [px1 - T_pflap, Lw - c], [px1 - T_pflap, c]],
+          [[px2, 0], [px2, Lw], [px2 + T_pflap, Lw - c], [px2 + T_pflap, c]]
+        ]
+      };
+    })();
+
+    /**
+     * ============================================================================
+     * 3. TEXTURAS PROCEDURALES Y MATERIALES BASE
+     * ============================================================================
+     */
+    function createKraftTexture(baseHex, grainColorHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = baseHex;
+      ctx.fillRect(0, 0, 512, 512);
+
+      for (let i = 0; i < 8000; i++) {
+        const x = Math.random() * 512, y = Math.random() * 512;
+        const alpha = Math.random() * 0.08;
+        ctx.fillStyle = Math.random() > 0.5 ? `rgba(90, 55, 25, ${alpha})` : `rgba(255, 240, 220, ${alpha})`;
+        ctx.fillRect(x, y, Math.random() * 2.5 + 0.5, Math.random() * 2.5 + 0.5);
+      }
+      ctx.strokeStyle = grainColorHex;
+      for (let i = 0; i < 420; i++) {
+        const x = Math.random() * 512, y = Math.random() * 512;
+        const len = Math.random() * 14 + 4;
+        const angle = (Math.random() - 0.5) * 0.4;
+        ctx.globalAlpha = Math.random() * 0.12 + 0.03;
+        ctx.lineWidth = Math.random() * 1.1 + 0.3;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(0.02, 0.02);
+      return texture;
+    }
+
+    const matOuterKraft = new THREE.MeshStandardMaterial({
+      color: 0xd9ab7e,
+      map: createKraftTexture('#d4a373', '#9c6e42'),
+      roughness: 0.85,
+      metalness: 0.02,
+      side: THREE.FrontSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
+
+    const matInnerKraft = new THREE.MeshStandardMaterial({
+      color: 0xc99768,
+      map: createKraftTexture('#c59262', '#8a5d34'),
+      roughness: 0.9,
+      metalness: 0.01,
+      side: THREE.FrontSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
+
+    const matInnerCustom = new THREE.MeshStandardMaterial({
+      color: 0x1f2026,
+      roughness: 0.85,
+      metalness: 0.02,
+      side: THREE.FrontSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
+
+    // Materiales para modo "Mapa de Caras"
+    const matRoleA = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    const matRoleB = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    const matRoleInner = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    const matRoleGlue = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+
+    const matCutLine = new THREE.LineBasicMaterial({ color: 0x1c1917 });
+    const matValleyLine = new THREE.LineDashedMaterial({ color: 0x2563eb, dashSize: 3.2, gapSize: 2.0 });
+    const matMountainLine = new THREE.LineDashedMaterial({ color: 0xea580c, dashSize: 3.2, gapSize: 2.0 });
+
+    function buildFrontShapeGeometry(withWindow) {
+      const { W, H_front } = DIM;
+      const shape = new THREE.Shape();
+      shape.moveTo(0, 0);
+      shape.lineTo(0, H_front);
+      shape.lineTo(-W, H_front);
+      shape.lineTo(-W, 0);
+      shape.closePath();
+
+      if (withWindow) {
+        const x0 = -W + WIN.mx, x1 = -WIN.mx;
+        const y0 = WIN.my, y1 = WIN.my + WIN.h;
+        const r = WIN.r;
+        const hole = new THREE.Path();
+        hole.moveTo(x0 + r, y0);
+        hole.lineTo(x1 - r, y0);
+        hole.quadraticCurveTo(x1, y0, x1, y0 + r);
+        hole.lineTo(x1, y1 - r);
+        hole.quadraticCurveTo(x1, y1, x1 - r, y1);
+        hole.lineTo(x0 + r, y1);
+        hole.quadraticCurveTo(x0, y1, x0, y1 - r);
+        hole.lineTo(x0, y0 + r);
+        hole.quadraticCurveTo(x0, y0, x0 + r, y0);
+        shape.holes.push(hole);
+      }
+      return new THREE.ShapeGeometry(shape, 12);
+    }
+
+    function updateFrontWindowMesh() {
+      const frontGroup = panels.front;
+      if (!frontGroup) return;
+      const newGeo = buildFrontShapeGeometry(state.hasWindow);
+      const oldGeo = frontGroup.userData.inner.geometry;
+      frontGroup.userData.inner.geometry = newGeo;
+      frontGroup.userData.outer.geometry = newGeo;
+      if (oldGeo) oldGeo.dispose();
+
+      // Eliminar borde previo de ventanita si existía
+      if (frontGroup.userData.winLines) {
+        frontGroup.userData.winLines.forEach(l => frontGroup.remove(l));
+        frontGroup.userData.winLines = null;
+      }
+      if (state.hasWindow) {
+        const { W } = DIM;
+        const x0 = -W + WIN.mx, x1 = -WIN.mx;
+        const y0 = WIN.my, y1 = WIN.my + WIN.h;
+        const r = WIN.r;
+        const p2d = new THREE.Path();
+        p2d.moveTo(x0 + r, y0); p2d.lineTo(x1 - r, y0); p2d.quadraticCurveTo(x1, y0, x1, y0 + r);
+        p2d.lineTo(x1, y1 - r); p2d.quadraticCurveTo(x1, y1, x1 - r, y1);
+        p2d.lineTo(x0 + r, y1); p2d.quadraticCurveTo(x0, y1, x0, y1 - r);
+        p2d.lineTo(x0, y0 + r); p2d.quadraticCurveTo(x0, y0, x0 + r, y0);
+        const pts2 = p2d.getPoints(36);
+        const lines = [];
+        [0.3, -0.3].forEach(yy => {
+          const pts3 = pts2.map(pt => new THREE.Vector3(pt.x, yy, -pt.y));
+          const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), matCutLine);
+          frontGroup.add(line);
+          lines.push(line);
+        });
+        frontGroup.userData.winLines = lines;
+      }
+    }
+
+    function createPanel(key, role, pointsXZ, creaseSegments = [], yOffset = 0) {
+      const group = new THREE.Group();
+      const shape = new THREE.Shape();
+      pointsXZ.forEach(([x, z], idx) => {
+        if (idx === 0) shape.moveTo(x, -z);
+        else shape.lineTo(x, -z);
+      });
+      shape.closePath();
+
+      const geo = new THREE.ShapeGeometry(shape);
+      const halfThick = 0.22;
+
+      const innerMesh = new THREE.Mesh(geo, matInnerKraft);
+      innerMesh.rotation.x = -Math.PI / 2;
+      innerMesh.position.y = halfThick + yOffset;
+      innerMesh.castShadow = true;
+      innerMesh.receiveShadow = true;
+      group.add(innerMesh);
+
+      const outerMesh = new THREE.Mesh(geo, matOuterKraft);
+      outerMesh.rotation.x = Math.PI / 2;
+      outerMesh.scale.y = -1;
+      outerMesh.position.y = -halfThick + yOffset;
+      outerMesh.castShadow = true;
+      outerMesh.receiveShadow = true;
+      group.add(outerMesh);
+
+      group.userData = { key, role, outer: outerMesh, inner: innerMesh };
+      panels[key] = group;
+
+      const isCreaseEdge = (p1, p2) => creaseSegments.some(seg => {
+        const [a, b] = seg.pts;
+        return (Math.hypot(p1[0] - a[0], p1[1] - a[1]) < 0.1 && Math.hypot(p2[0] - b[0], p2[1] - b[1]) < 0.1) ||
+               (Math.hypot(p1[0] - b[0], p1[1] - b[1]) < 0.1 && Math.hypot(p2[0] - a[0], p2[1] - a[1]) < 0.1);
+      });
+
+      for (let i = 0; i < pointsXZ.length; i++) {
+        const p1 = pointsXZ[i], p2 = pointsXZ[(i + 1) % pointsXZ.length];
+        if (!isCreaseEdge(p1, p2)) {
+          [halfThick + 0.08 + yOffset, -halfThick - 0.08 + yOffset].forEach(yy => {
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(p1[0], yy, p1[1]),
+              new THREE.Vector3(p2[0], yy, p2[1])
+            ]);
+            group.add(new THREE.Line(lineGeo, matCutLine));
+          });
+        }
+      }
+
+      creaseSegments.forEach(seg => {
+        const [a, b] = seg.pts;
+        const mat = seg.type === 'mountain' ? matMountainLine : matValleyLine;
+        [halfThick + 0.12 + yOffset, -halfThick - 0.12 + yOffset].forEach(yy => {
+          const lineGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(a[0], yy, a[1]),
+            new THREE.Vector3(b[0], yy, b[1])
+          ]);
+          const line = new THREE.Line(lineGeo, mat);
+          line.computeLineDistances();
+          group.add(line);
+        });
+      });
+
+      return group;
+    }
+
+    function addLabelAnchor(parent, x, y, z, text, badgeType = 'default') {
+      const anchor = new THREE.Object3D();
+      anchor.position.set(x, y, z);
+      parent.add(anchor);
+
+      const el = document.createElement('div');
+      let styleClass = 'bg-white/90 dark:bg-zinc-900/90 text-stone-800 dark:text-zinc-100 border-stone-300 dark:border-zinc-700';
+      if (badgeType === 'mountain') styleClass = 'bg-orange-50/95 dark:bg-orange-950/90 text-orange-900 dark:text-orange-200 border-orange-300 dark:border-orange-700';
+      else if (badgeType === 'valley') styleClass = 'bg-blue-50/95 dark:bg-blue-950/90 text-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700';
+      el.className = `label-3d text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-sm ${styleClass}`;
+      el.textContent = text;
+      document.getElementById('labels-layer').appendChild(el);
+      labelAnchors.push({ anchor, el });
+    }
+
+    /**
+     * ============================================================================
+     * 4. JERARQUÍA 3D EXACTA DE LA CAJA
+     * ============================================================================
+     */
+    function buildBoxHierarchy() {
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, diffH, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer } = DIM;
+
+      rootAssembly = new THREE.Group();
+      scene.add(rootAssembly);
+      rootPivot = new THREE.Group();
+      rootAssembly.add(rootPivot);
+
+      // 0. Espalda Cuerpo
+      const backBody = createPanel('back', 'extA',
+        [[0, 0], [W, 0], [W, -H_hinge], [0, -H_hinge]],
+        [
+          { pts: [[0, 0], [W, 0]], type: 'valley' },
+          { pts: [[0, 0], [0, -H_hinge]], type: 'valley' },
+          { pts: [[W, 0], [W, -H_hinge]], type: 'valley' },
+          { pts: [[0, -H_hinge], [W, -H_hinge]], type: 'valley' }
+        ]
+      );
+      rootPivot.add(backBody);
+      addLabelAnchor(backBody, W / 2, 1, -H_hinge / 2, 'Espalda (A)', 'valley');
+
+      // 1. Base + Pestaña Base
+      const basePivot = new THREE.Group();
+      rootPivot.add(basePivot);
+      hinges.base = basePivot;
+      const basePanel = createPanel('base', 'extA',
+        [[0, 0], [W, 0], [W, D], [0, D]],
+        [{ pts: [[0, 0], [W, 0]], type: 'valley' }, { pts: [[0, D], [W, D]], type: 'valley' }],
+        0.15
+      );
+      basePivot.add(basePanel);
+
+      const baseTabPivot = new THREE.Group();
+      baseTabPivot.position.set(0, 0, D);
+      basePivot.add(baseTabPivot);
+      hinges.baseTab = baseTabPivot;
+      baseTabPivot.add(createPanel('baseTab', 'glue',
+        [[0, 0], [W, 0], [W - chamfer, T_base], [chamfer, T_base]],
+        [{ pts: [[0, 0], [W, 0]], type: 'valley' }],
+        0.35
+      ));
+
+      // 2. Rama Izquierda
+      const leftSidePivot = new THREE.Group();
+      rootPivot.add(leftSidePivot);
+      hinges.leftSide = leftSidePivot;
+      leftSidePivot.add(createPanel('left', 'extA',
+        [[0, 0], [0, -H_hinge], [-D, -H_front], [-D, 0]],
+        [
+          { pts: [[0, 0], [0, -H_hinge]], type: 'valley' },
+          { pts: [[-D, 0], [0, 0]], type: 'valley' },
+          { pts: [[-D, 0], [-D, -H_front]], type: 'valley' }
+        ]
+      ));
+
+      const leftBaseFlapPivot = new THREE.Group();
+      leftSidePivot.add(leftBaseFlapPivot);
+      hinges.leftBaseFlap = leftBaseFlapPivot;
+      leftBaseFlapPivot.add(createPanel('leftBaseFlap', 'glue',
+        [[-D, 0], [0, 0], [-chamfer, T_side_base], [-D + chamfer, T_side_base]],
+        [{ pts: [[-D, 0], [0, 0]], type: 'valley' }]
+      ));
+
+      const frontBodyPivot = new THREE.Group();
+      frontBodyPivot.position.set(-D, 0, 0);
+      leftSidePivot.add(frontBodyPivot);
+      hinges.frontBody = frontBodyPivot;
+      const frontBodyPanel = createPanel('front', 'extA',
+        [[0, 0], [0, -H_front], [-W, -H_front], [-W, 0]],
+        [{ pts: [[0, 0], [0, -H_front]], type: 'valley' }, { pts: [[-W, 0], [-W, -H_front]], type: 'valley' }]
+      );
+      frontBodyPivot.add(frontBodyPanel);
+      addLabelAnchor(frontBodyPanel, -W / 2, 1, -H_front / 2, 'Frente (A)', 'valley');
+
+      const bodyGluePivot = new THREE.Group();
+      bodyGluePivot.position.set(-W, 0, 0);
+      frontBodyPivot.add(bodyGluePivot);
+      hinges.bodyGlue = bodyGluePivot;
+      bodyGluePivot.add(createPanel('bodyGlue', 'glue',
+        [[0, 0], [0, -H_front], [-T_glue, -H_front + chamfer], [-T_glue, -chamfer]],
+        [{ pts: [[0, 0], [0, -H_front]], type: 'valley' }],
+        0.35
+      ));
+
+      // 3. Tapa Abatible
+      const lidBackPivot = new THREE.Group();
+      lidBackPivot.position.set(0, 0, -H_hinge);
+      rootPivot.add(lidBackPivot);
+      hinges.lidBack = lidBackPivot;
+      lidBackPivot.add(createPanel('lidBack', 'extA',
+        [[0, 0], [W, 0], [W, -H_lid_back], [0, -H_lid_back]],
+        [
+          { pts: [[0, 0], [W, 0]], type: 'valley' },
+          { pts: [[0, 0], [0, -H_lid_back]], type: 'valley' },
+          { pts: [[W, 0], [W, -H_lid_back]], type: 'valley' },
+          { pts: [[0, -H_lid_back], [W, -H_lid_back]], type: 'valley' }
+        ]
+      ));
+
+      const lidLeftPivot = new THREE.Group();
+      lidBackPivot.add(lidLeftPivot);
+      hinges.lidLeft = lidLeftPivot;
+      lidLeftPivot.add(createPanel('lidLeft', 'extA',
+        [[0, 0], [0, -H_lid_back], [-D, -H_lid_back], [-D, diffH]],
+        [{ pts: [[0, 0], [0, -H_lid_back]], type: 'valley' }, { pts: [[-D, -H_lid_back], [-D, diffH]], type: 'valley' }],
+        0.15
+      ));
+
+      const lidLeftGluePivot = new THREE.Group();
+      lidLeftGluePivot.position.set(-D, 0, 0);
+      lidLeftPivot.add(lidLeftGluePivot);
+      hinges.lidLeftGlue = lidLeftGluePivot;
+      lidLeftGluePivot.add(createPanel('lidLeftGlue', 'glue',
+        [[0, diffH], [0, -H_lid_back], [-T_lid_glue, -H_lid_back + chamfer], [-T_lid_glue, diffH - chamfer]],
+        [{ pts: [[0, diffH], [0, -H_lid_back]], type: 'valley' }],
+        0.4
+      ));
+
+      const lidRightPivot = new THREE.Group();
+      lidRightPivot.position.set(W, 0, 0);
+      lidBackPivot.add(lidRightPivot);
+      hinges.lidRight = lidRightPivot;
+      lidRightPivot.add(createPanel('lidRight', 'extA',
+        [[0, 0], [D, diffH], [D, -H_lid_back], [0, -H_lid_back]],
+        [{ pts: [[0, 0], [0, -H_lid_back]], type: 'valley' }, { pts: [[D, diffH], [D, -H_lid_back]], type: 'valley' }],
+        0.15
+      ));
+
+      const lidRightGluePivot = new THREE.Group();
+      lidRightGluePivot.position.set(D, 0, 0);
+      lidRightPivot.add(lidRightGluePivot);
+      hinges.lidRightGlue = lidRightGluePivot;
+      lidRightGluePivot.add(createPanel('lidRightGlue', 'glue',
+        [[0, diffH], [T_lid_glue, diffH - chamfer], [T_lid_glue, -H_lid_back + chamfer], [0, -H_lid_back]],
+        [{ pts: [[0, diffH], [0, -H_lid_back]], type: 'valley' }],
+        0.4
+      ));
+
+      const lidTopPivot = new THREE.Group();
+      lidTopPivot.position.set(0, 0, -H_lid_back);
+      lidBackPivot.add(lidTopPivot);
+      hinges.lidTop = lidTopPivot;
+      const lidTopPanel = createPanel('top', 'extA',
+        [[0, 0], [W, 0], [W, -D], [0, -D]],
+        [{ pts: [[0, 0], [W, 0]], type: 'valley' }, { pts: [[0, -D], [W, -D]], type: 'valley' }]
+      );
+      lidTopPivot.add(lidTopPanel);
+      addLabelAnchor(lidTopPanel, W / 2, 1, -D / 2, 'Tapa (A)', 'valley');
+
+      const lidFrontPivot = new THREE.Group();
+      lidFrontPivot.position.set(0, 0, -D);
+      lidTopPivot.add(lidFrontPivot);
+      hinges.lidFront = lidFrontPivot;
+      lidFrontPivot.add(createPanel('lidFront', 'extA',
+        [[0, 0], [W, 0], [W, -H_lid_front], [0, -H_lid_front]],
+        [{ pts: [[0, 0], [W, 0]], type: 'valley' }],
+        -0.12
+      ));
+
+      // 4. Rama Derecha (ENCERRADA / INTERNA) + Compartimento Encendedor (Lado B)
+      const rightSidePivot = new THREE.Group();
+      rightSidePivot.position.set(W, 0, 0);
+      rootPivot.add(rightSidePivot);
+      hinges.rightSide = rightSidePivot;
+      rightSidePivot.add(createPanel('right', 'enclosed',
+        [[0, 0], [D, 0], [D, -H_front], [0, -H_hinge]],
+        [
+          { pts: [[0, 0], [0, -H_hinge]], type: 'valley' },
+          { pts: [[0, 0], [D, 0]], type: 'valley' },
+          { pts: [[D, 0], [D, -H_front]], type: 'mountain' }
+        ]
+      ));
+
+      const rightBaseFlapPivot = new THREE.Group();
+      rightSidePivot.add(rightBaseFlapPivot);
+      hinges.rightBaseFlap = rightBaseFlapPivot;
+      rightBaseFlapPivot.add(createPanel('rightBaseFlap', 'glue',
+        [[0, 0], [D, 0], [D - chamfer, T_side_base], [chamfer, T_side_base]],
+        [{ pts: [[0, 0], [D, 0]], type: 'valley' }]
+      ));
+
+      // Bolsillo (Lado B: cara visible es innerMesh)
+      const pocketFrontPivot = new THREE.Group();
+      pocketFrontPivot.position.set(D, 0, 0);
+      rightSidePivot.add(pocketFrontPivot);
+      hinges.pocketFront = pocketFrontPivot;
+      const pocketFrontPanel = createPanel('pocketFront', 'extB',
+        [[0, 0], [Lw, 0], [Lw, -Lh], [T_lid_glue + 1, -Lh], [T_lid_glue + 1, -(H_front - 1)], [0, -(H_front - 1)]],
+        [{ pts: [[0, 0], [0, -(H_front - 1)]], type: 'mountain' }, { pts: [[Lw, 0], [Lw, -Lh]], type: 'mountain' }]
+      );
+      pocketFrontPivot.add(pocketFrontPanel);
+      addLabelAnchor(pocketFrontPanel, Lw / 2, 1, -Lh / 2, 'Bolsillo (B)', 'mountain');
+
+      const pocketOuterPivot = new THREE.Group();
+      pocketOuterPivot.position.set(Lw, 0, 0);
+      pocketFrontPivot.add(pocketOuterPivot);
+      hinges.pocketOuter = pocketOuterPivot;
+      pocketOuterPivot.add(createPanel('pocketOuter', 'extB',
+        [[0, 0], [D, 0], [D, -Lh], [0, -Lh]],
+        [
+          { pts: [[0, 0], [0, -Lh]], type: 'mountain' },
+          { pts: [[D, 0], [D, -Lh]], type: 'mountain' },
+          { pts: [[0, 0], [D, 0]], type: 'mountain' }
+        ]
+      ));
+
+      const pocketBasePivot = new THREE.Group();
+      pocketOuterPivot.add(pocketBasePivot);
+      hinges.pocketBase = pocketBasePivot;
+      pocketBasePivot.add(createPanel('pocketBase', 'extB',
+        [[0, 0], [D, 0], [D, Lw], [0, Lw]],
+        [
+          { pts: [[0, 0], [D, 0]], type: 'mountain' },
+          { pts: [[0, 0], [0, Lw]], type: 'mountain' },
+          { pts: [[D, 0], [D, Lw]], type: 'mountain' }
+        ],
+        -0.15
+      ));
+
+      const mkFlap = (key, x, dir) => {
+        const piv = new THREE.Group();
+        piv.position.set(x, 0, 0);
+        pocketBasePivot.add(piv);
+        hinges[key] = piv;
+        piv.add(createPanel(key, 'glue',
+          [[0, 0], [0, Lw], [dir * T_pflap, Lw - chamfer], [dir * T_pflap, chamfer]],
+          [{ pts: [[0, 0], [0, Lw]], type: 'mountain' }],
+          0.35 * dir
+        ));
+      };
+      mkFlap('pocketFlapF', 0, -1);
+      mkFlap('pocketFlapB', D, 1);
+
+      const pocketBackPivot = new THREE.Group();
+      pocketBackPivot.position.set(D, 0, 0);
+      pocketOuterPivot.add(pocketBackPivot);
+      hinges.pocketBack = pocketBackPivot;
+      pocketBackPivot.add(createPanel('pocketBack', 'extB',
+        [[0, 0], [Lw, 0], [Lw, -Lh], [0, -Lh]],
+        [{ pts: [[0, 0], [0, -Lh]], type: 'mountain' }, { pts: [[Lw, 0], [Lw, -Lh]], type: 'mountain' }]
+      ));
+
+      const pocketGluePivot = new THREE.Group();
+      pocketGluePivot.position.set(Lw, 0, 0);
+      pocketBackPivot.add(pocketGluePivot);
+      hinges.pocketGlue = pocketGluePivot;
+      pocketGluePivot.add(createPanel('pocketGlue', 'glue',
+        [[0, 0], [T_glue, -chamfer], [T_glue, -Lh + chamfer], [0, -Lh]],
+        [{ pts: [[0, 0], [0, -Lh]], type: 'mountain' }],
+        -0.35
+      ));
+
+      rootAssembly.position.set(-W / 2, 0.5, 0);
+    }
+
+    /**
+     * ============================================================================
+     * 5. MODELO 3D DEL ENCENDEDOR BIC J6
+     * ============================================================================
+     */
+    function buildLighterModel() {
+      lighterGroup = new THREE.Group();
+      const bodyW = 25.5, bodyD = 14.5, bodyH = 62;
+      const shape = new THREE.Shape();
+      shape.absellipse(0, 0, bodyW / 2, bodyD / 2, 0, Math.PI * 2, false, 0);
+
+      const bodyGeo = new THREE.ExtrudeGeometry(shape, { depth: bodyH, bevelEnabled: true, bevelSegments: 4, steps: 1, bevelSize: 0.9, bevelThickness: 0.9 });
+      bodyGeo.rotateX(-Math.PI / 2);
+      const bodyMesh = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ color: 0x1e2024, roughness: 0.28, metalness: 0.1 }));
+      bodyMesh.position.y = 1.0;
+      bodyMesh.castShadow = true;
+      bodyMesh.receiveShadow = true;
+      lighterGroup.add(bodyMesh);
+
+      const collarGeo = new THREE.ExtrudeGeometry(shape, { depth: 3.5, bevelEnabled: true, bevelSize: 0.4, bevelThickness: 0.4 });
+      collarGeo.rotateX(-Math.PI / 2);
+      const collarMesh = new THREE.Mesh(collarGeo, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.45 }));
+      collarMesh.position.y = bodyH + 1.5;
+      lighterGroup.add(collarMesh);
+
+      const hoodMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(bodyW * 0.82, 13, bodyD * 0.52),
+        new THREE.MeshStandardMaterial({ color: 0xd8dde3, roughness: 0.2, metalness: 0.88 })
+      );
+      hoodMesh.position.set(0, bodyH + 10.5, bodyD * 0.18);
+      hoodMesh.castShadow = true;
+      lighterGroup.add(hoodMesh);
+
+      const wheelGeo = new THREE.CylinderGeometry(4.0, 4.0, 3.2, 20);
+      wheelGeo.rotateZ(Math.PI / 2);
+      const wheelMesh = new THREE.Mesh(wheelGeo, new THREE.MeshStandardMaterial({ color: 0xaab2bd, roughness: 0.35, metalness: 0.85 }));
+      wheelMesh.position.set(0, bodyH + 13.5, -bodyD * 0.08);
+      lighterGroup.add(wheelMesh);
+
+      const triggerMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(bodyW * 0.58, 4.2, bodyD * 0.34),
+        new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.35, metalness: 0.05 })
+      );
+      triggerMesh.position.set(0, bodyH + 8.5, -bodyD * 0.28);
+      lighterGroup.add(triggerMesh);
+
+      lighterGroup.position.set(DIM.W + DIM.Lw / 2, 0.8, DIM.D / 2);
+      rootAssembly.add(lighterGroup);
+    }
+
+    /**
+     * ============================================================================
+     * 6. ANIMACIÓN DE PLEGADO
+     * ============================================================================
+     */
+    function smoothstep(edge0, edge1, x) {
+      const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+      return t * t * (3 - 2 * t);
+    }
+
+    function updateFoldAnimation() {
+      const f = state.fold;
+      const HALF_PI = Math.PI / 2;
+
+      const pBodySides   = smoothstep(0.00, 0.22, f);
+      const pBodyFront   = smoothstep(0.10, 0.32, f);
+      const pBaseFlaps   = smoothstep(0.22, 0.42, f);
+      const pBaseMain    = smoothstep(0.30, 0.50, f);
+      const pPocket1     = smoothstep(0.42, 0.62, f);
+      const pPocket2     = smoothstep(0.52, 0.74, f);
+      const pLidSides    = smoothstep(0.62, 0.80, f);
+      const pLidTop      = smoothstep(0.70, 0.88, f);
+      const pPocketFlaps = smoothstep(0.72, 0.86, f);
+      const pStandUp     = smoothstep(0.84, 1.00, f);
+
+      hinges.base.rotation.x = -HALF_PI * pBaseMain;
+      hinges.baseTab.rotation.x = -HALF_PI * pBaseMain;
+
+      hinges.leftSide.rotation.z = -HALF_PI * pBodySides;
+      hinges.leftBaseFlap.rotation.x = -HALF_PI * pBaseFlaps;
+      hinges.frontBody.rotation.z = -HALF_PI * pBodyFront;
+      hinges.bodyGlue.rotation.z = -HALF_PI * pBodyFront;
+
+      hinges.rightSide.rotation.z = HALF_PI * pBodySides;
+      hinges.rightBaseFlap.rotation.x = -HALF_PI * pBaseFlaps;
+
+      hinges.pocketFront.rotation.z = -HALF_PI * pPocket1;
+      hinges.pocketOuter.rotation.z = -HALF_PI * pPocket1;
+      hinges.pocketBase.rotation.x = HALF_PI * pPocket2;
+      hinges.pocketBack.rotation.z = -HALF_PI * pPocket2;
+      hinges.pocketGlue.rotation.z = -HALF_PI * pPocket2;
+      hinges.pocketFlapF.rotation.z = HALF_PI * pPocketFlaps;
+      hinges.pocketFlapB.rotation.z = -HALF_PI * pPocketFlaps;
+
+      const lidK = smoothstep(0.88, 0.96, f);
+      if (cachedLidSlider) {
+        cachedLidSlider.disabled = lidK < 1;
+        cachedLidSlider.style.opacity = lidK < 1 ? 0.4 : 1;
+      }
+      hinges.lidBack.rotation.x = -THREE.MathUtils.degToRad(state.lidOpen * lidK);
+      hinges.lidLeft.rotation.z = -HALF_PI * pLidSides;
+      hinges.lidLeftGlue.rotation.z = -HALF_PI * pLidSides;
+      hinges.lidRight.rotation.z = HALF_PI * pLidSides;
+      hinges.lidRightGlue.rotation.z = HALF_PI * pLidSides;
+      hinges.lidTop.rotation.x = HALF_PI * pLidTop;
+      hinges.lidFront.rotation.x = HALF_PI * pLidTop;
+
+      rootPivot.rotation.x = HALF_PI * pStandUp;
+
+      if (hinges.pocketFront) hinges.pocketFront.visible = state.hasPocket;
+
+      if (lighterGroup) {
+        const lighterAppear = smoothstep(0.88, 1.00, f);
+        lighterGroup.visible = state.hasPocket && state.showLighter && lighterAppear > 0.02;
+        if (lighterGroup.visible) {
+          lighterGroup.position.y = 0.8 + (1 - lighterAppear) * (DIM.Lh + 2);
+        }
+      }
+
+      // Actualizar pill de estado
+      const dot = document.getElementById('stage-dot');
+      const txt = document.getElementById('stage-text');
+      if (f <= 0.01) { dot.className = 'w-2 h-2 rounded-full bg-blue-500 shrink-0'; txt.textContent = 'Plantilla 2D plana'; }
+      else if (f < 0.30) { dot.className = 'w-2 h-2 rounded-full bg-amber-500 shrink-0'; txt.textContent = 'Plegando paredes del cuerpo'; }
+      else if (f < 0.46) { dot.className = 'w-2 h-2 rounded-full bg-amber-500 shrink-0'; txt.textContent = 'Cerrando base y solapas'; }
+      else if (f < 0.74) { dot.className = 'w-2 h-2 rounded-full bg-orange-500 shrink-0'; txt.textContent = 'Doblez inverso (montaña) del bolsillo'; }
+      else if (f < 0.99) { dot.className = 'w-2 h-2 rounded-full bg-amber-500 shrink-0'; txt.textContent = 'Formando tapa e insertando encendedor'; }
+      else { dot.className = 'w-2 h-2 rounded-full bg-emerald-500 shrink-0'; txt.textContent = 'Caja armada · 13 caras externas activas'; }
+    }
+
+    /**
+     * ============================================================================
+     * 7. MOTOR DE DISEÑO AUTOMÁTICO (13 CARAS + SMART FIT + WRAP + COLOR DOMINANTE)
+     * ============================================================================
+     */
+    let selectedFaceKey = 'all';
+    let selectedStickerId = null;
+    const PX_PER_MM = 8; // 8 px/mm (~203 DPI en canvas interactivo)
+
+    function initFaceState(f) {
+      f.img = null;
+      f.fillColor = null;    // Capa 0: Pintura / color base (null = cartón kraft natural)
+      f.bgColor = '#ffffff';
+      f.rot = 0;             // 0,1,2,3 (múltiplos de 90°)
+      f.fh = false;
+      f.fv = false;
+      f.zoom = 1;
+      f.ox = 0;
+      f.oy = 0;
+      f.crop = null;         // [u0, v0, u1, v1] para modo Envoltura Continua
+      f.overlays = [];       // Capa 2: Stickers / PNGs transparentes [{ id, name, img, src, x, y, scale, rot }]
+      f.mat = null;
+      f.canvasCache = null;  // Último canvas renderizado (reutilizado en 2D y SVG)
+    }
+
+    function faceHasContent(f) {
+      return !!(f.img || f.fillColor || (f.overlays && f.overlays.length > 0));
+    }
+
+    EXTERNAL_FACES.forEach(initFaceState);
+
+    // Extrae el color dominante de los bordes de una imagen para relleno automático
+    function extractEdgeDominantColor(img) {
+      const c = document.createElement('canvas');
+      c.width = 48; c.height = 48;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, 48, 48);
+      const data = ctx.getImageData(0, 0, 48, 48).data;
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let y = 0; y < 48; y++) {
+        for (let x = 0; x < 48; x++) {
+          if (x < 4 || x >= 44 || y < 4 || y >= 44) {
+            const idx = (y * 48 + x) * 4;
+            if (data[idx + 3] > 128) {
+              r += data[idx]; g += data[idx + 1]; b += data[idx + 2]; count++;
+            }
+          }
+        }
+      }
+      if (!count) return '#27272a';
+      const toHex = v => Math.round(v / count).toString(16).padStart(2, '0');
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    // Calcula orientación automática óptima (Smart Cover) para una cara
+    function computeSmartFit(f, img) {
+      f.crop = null;
+      f.fh = false;
+      f.fv = false;
+      f.zoom = 1;
+      f.ox = 0;
+      f.oy = 0;
+      if (!state.smartOrient) { f.rot = 0; return; }
+      const imgPortrait = img.height > img.width * 1.15;
+      const imgLandscape = img.width > img.height * 1.15;
+      const facePortrait = f.h > f.w * 1.15;
+      const faceLandscape = f.w > f.h * 1.15;
+      // Si la orientación de la imagen es opuesta a la de la cara, rotar 90° para aprovechar área
+      f.rot = ((imgPortrait && faceLandscape) || (imgLandscape && facePortrait)) ? 1 : 0;
+    }
+
+    // Renderiza la cara en vista "armada derecha" componiendo las 3 capas
+    function renderFaceCanvas(f, pxPerMm = PX_PER_MM) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(16, Math.round(f.w * pxPerMm));
+      c.height = Math.max(16, Math.round(f.h * pxPerMm));
+      const ctx = c.getContext('2d');
+
+      // CAPA 0: Pintura base o cartón kraft natural
+      const kraftFallback = f.side === 'B' ? '#c59262' : '#d4a373';
+      ctx.fillStyle = f.fillColor || (f.img ? (f.bgColor || kraftFallback) : kraftFallback);
+      ctx.fillRect(0, 0, c.width, c.height);
+
+      // CAPA 1: Imagen / textura principal
+      if (f.img) {
+        ctx.save();
+        ctx.translate(c.width / 2 + (f.ox / 100) * c.width, c.height / 2 - (f.oy / 100) * c.height);
+        ctx.rotate((f.rot * Math.PI) / 2);
+        ctx.scale(f.fh ? -1 : 1, f.fv ? -1 : 1);
+
+        if (f.crop) {
+          const [u0, v0, u1, v1] = f.crop;
+          const sx = u0 * f.img.width, sy = v0 * f.img.height;
+          const sw = Math.max(1, (u1 - u0) * f.img.width);
+          const sh = Math.max(1, (v1 - v0) * f.img.height);
+          const dw = c.width * f.zoom, dh = c.height * f.zoom;
+          ctx.drawImage(f.img, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+        } else {
+          const odd = f.rot % 2;
+          const s = Math.max((odd ? c.height : c.width) / f.img.width, (odd ? c.width : c.height) / f.img.height) * f.zoom;
+          ctx.drawImage(f.img, (-f.img.width * s) / 2, (-f.img.height * s) / 2, f.img.width * s, f.img.height * s);
+        }
+        ctx.restore();
+      }
+
+      // CAPA 2: Stickers / PNGs con transparencia (y recoloreado opcional source-in)
+      if (f.overlays && f.overlays.length > 0) {
+        for (const ov of f.overlays) {
+          if (!ov.img) continue;
+          ctx.save();
+          const cx = c.width * (0.5 + ov.x / 100);
+          const cy = c.height * (0.5 - ov.y / 100);
+          ctx.translate(cx, cy);
+          ctx.rotate((ov.rot * Math.PI) / 180);
+          const targetW = Math.min(c.width, c.height) * (ov.scale / 100);
+          const ratio = (ov.img.naturalHeight || ov.img.height || 100) / Math.max(1, ov.img.naturalWidth || ov.img.width || 100);
+          const dw = targetW;
+          const dh = targetW * ratio;
+
+          if (ov.tintEnabled && ov.tintColor) {
+            const tc = document.createElement('canvas');
+            tc.width = Math.max(2, Math.round(dw));
+            tc.height = Math.max(2, Math.round(dh));
+            const tctx = tc.getContext('2d');
+            tctx.drawImage(ov.img, 0, 0, tc.width, tc.height);
+            tctx.globalCompositeOperation = 'source-in';
+            tctx.fillStyle = ov.tintColor;
+            tctx.fillRect(0, 0, tc.width, tc.height);
+            ctx.drawImage(tc, -dw / 2, -dh / 2, dw, dh);
+          } else {
+            ctx.drawImage(ov.img, -dw / 2, -dh / 2, dw, dh);
+          }
+          ctx.restore();
+        }
+      }
+
+      return c;
+    }
+
+    // Aplica el material correcto a una cara externa en 3D y actualiza caché 2D
+    function applyFaceMaterial(f) {
+      const group = panels[f.k];
+      if (!group) return;
+      const mesh = group.userData[f.meshKey];
+      if (!mesh) return;
+
+      if (f.mat) {
+        if (f.mat.map) f.mat.map.dispose();
+        f.mat.dispose();
+        f.mat = null;
+      }
+
+      f.canvasCache = faceHasContent(f) ? renderFaceCanvas(f, PX_PER_MM) : null;
+
+      if (state.roleMapMode) {
+        mesh.material = f.side === 'A' ? matRoleA : matRoleB;
+        return;
+      }
+
+      if (!f.canvasCache) {
+        mesh.material = f.meshKey === 'outer' ? matOuterKraft : matInnerKraft;
+        return;
+      }
+
+      // Compensación de espejado UV del 3D
+      const c = document.createElement('canvas');
+      c.width = f.canvasCache.width;
+      c.height = f.canvasCache.height;
+      const ctx = c.getContext('2d');
+      ctx.translate(f.dh ? c.width : 0, f.dv ? c.height : 0);
+      ctx.scale(f.dh ? -1 : 1, f.dv ? -1 : 1);
+      ctx.drawImage(f.canvasCache, 0, 0);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.anisotropy = 8;
+      const [x0, x1, y0, y1] = f.b;
+      tex.repeat.set(1 / (x1 - x0), 1 / (y1 - y0));
+      tex.offset.set(-x0 / (x1 - x0), -y0 / (y1 - y0));
+
+      f.mat = matOuterKraft.clone();
+      f.mat.map = tex;
+      f.mat.color.set(0xffffff);
+      f.mat.roughness = 0.65;
+      mesh.material = f.mat;
+    }
+
+    // Actualiza caras internas, encerradas y pestañas de pegado (y modo Mapa de Caras)
+    function refreshAllMaterials() {
+      if (panels.right) {
+        panels.right.userData.role = state.hasPocket ? 'enclosed' : 'extA';
+      }
+      matInnerCustom.color.set(state.innerColorHex);
+      const innerMat = state.roleMapMode ? matRoleInner : (state.innerCustomColor ? matInnerCustom : matInnerKraft);
+      const glueMat = state.roleMapMode ? matRoleGlue : innerMat;
+
+      Object.values(panels).forEach(group => {
+        const { role, outer, inner } = group.userData;
+        if (role === 'extA') {
+          inner.material = innerMat; // Reverso interior de caja/tapa
+        } else if (role === 'extB') {
+          outer.material = innerMat; // Reverso interior del bolsillo
+        } else if (role === 'enclosed') {
+          outer.material = innerMat;
+          inner.material = innerMat;
+        } else if (role === 'glue') {
+          outer.material = glueMat;
+          inner.material = glueMat;
+        }
+      });
+
+      getActiveExternalFaces().forEach(applyFaceMaterial);
+      updateCoverageUI();
+      draw2DEditor();
+    }
+
+    function updateCoverageUI() {
+      const activeFaces = getActiveExternalFaces();
+      const covered = activeFaces.filter(faceHasContent).length;
+      const badge = document.getElementById('coverage-badge');
+      badge.textContent = `${covered} / ${activeFaces.length}`;
+      badge.className = covered === activeFaces.length
+        ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+        : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200';
+
+      EXTERNAL_FACES.forEach(f => {
+        const dot = document.getElementById(`status-dot-${f.k}`);
+        if (!dot) return;
+        if (f.img || (f.overlays && f.overlays.length)) dot.className = 'w-2 h-2 rounded-full bg-emerald-500 shrink-0';
+        else if (f.fillColor) dot.className = 'w-2 h-2 rounded-full bg-amber-500 shrink-0';
+        else dot.className = 'w-2 h-2 rounded-full bg-stone-300 dark:bg-zinc-600 shrink-0';
+      });
+    }
+
+    function loadImageFile(file, callback) {
+      if (!file) return;
+      const fr = new FileReader();
+      fr.onload = () => {
+        const img = new Image();
+        img.onload = () => callback(img);
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    }
+
+    function applyImageToFaces(faces, img, mode = 'smart') {
+      faces.forEach(f => {
+        f.img = img;
+        f.fillColor = null;
+        if (mode === 'wrap') {
+          f.rot = 0; f.fh = false; f.fv = false; f.zoom = 1; f.ox = 0; f.oy = 0;
+          f.crop = f.wrap;
+        } else {
+          computeSmartFit(f, img);
+        }
+        applyFaceMaterial(f);
+      });
+      updateCoverageUI();
+      updateFacePreview();
+      draw2DEditor();
+    }
+
+    function autoFillEmptyFaces() {
+      const refFace = EXTERNAL_FACES.find(f => f.img);
+      if (!refFace) {
+        showToast('Primero sube al menos una imagen de referencia');
+        return;
+      }
+      const domColor = extractEdgeDominantColor(refFace.img);
+      let filled = 0;
+      EXTERNAL_FACES.forEach(f => {
+        if (!f.img && !f.fillColor) {
+          f.fillColor = domColor;
+          f.bgColor = domColor;
+          applyFaceMaterial(f);
+          filled++;
+        }
+      });
+      if (filled === 0) showToast('Las 13 caras ya están cubiertas');
+      else showToast(`${filled} caras vacías rellenadas con ${domColor}`);
+      updateCoverageUI();
+      updateFacePreview();
+      draw2DEditor();
+    }
+
+    /**
+     * ============================================================================
+     * 8. EDITOR DE PLANTILLA 2D INTERACTIVO (CANVAS CON HIT-TEST + DRAG & DROP)
+     * ============================================================================
+     */
+    const editor2D = {
+      scale: 2.2,
+      panX: 0,
+      panY: 0,
+      hoverKey: null,
+      isPanning: false,
+      isDraggingImg: false,
+      lastX: 0,
+      lastY: 0,
+      bounds: {
+        minX: -(DIM.D + DIM.W + DIM.T_glue),                  // -89
+        maxX: DIM.W + DIM.D + DIM.Lw + DIM.D + DIM.Lw + DIM.T_glue, // 167
+        minY: -(DIM.H + DIM.D + DIM.H_lid_front),             // -138
+        maxY: DIM.D + DIM.T_base                              // 34
+      }
+    };
+
+    function get2DTransform(canvas) {
+      const w = canvas.width, h = canvas.height;
+      const { minX, maxX, minY, maxY } = editor2D.bounds;
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      return {
+        toScreen: (x, y) => [w / 2 + (x - cx) * editor2D.scale + editor2D.panX, h / 2 + (y - cy) * editor2D.scale + editor2D.panY],
+        toWorld: (sx, sy) => [(sx - w / 2 - editor2D.panX) / editor2D.scale + cx, (sy - h / 2 - editor2D.panY) / editor2D.scale + cy]
+      };
+    }
+
+    function fit2DView() {
+      const canvas = document.getElementById('canvas-2d');
+      if (!canvas || canvas.clientWidth === 0) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
+      const { minX, maxX, minY, maxY } = editor2D.bounds;
+      const bw = maxX - minX + 28;
+      const bh = maxY - minY + 28;
+      editor2D.scale = Math.min(canvas.width / bw, canvas.height / bh);
+      editor2D.panX = 0;
+      editor2D.panY = 0;
+      draw2DEditor();
+    }
+
+    function pointInPoly(px, py, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [xi, yi] = poly[i], [xj, yj] = poly[j];
+        const intersect = ((yi > py) !== (yj > py)) && (px < ((xj - xi) * (py - yi)) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function polyBounds(poly) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      poly.forEach(([x, y]) => {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      });
+      return { minX, maxX, minY, maxY, w: maxX - minX, h: maxY - minY };
+    }
+
+    function drawPolyPath(ctx, poly, toScreen) {
+      ctx.beginPath();
+      poly.forEach(([x, y], i) => {
+        const [sx, sy] = toScreen(x, y);
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      });
+      ctx.closePath();
+    }
+
+    function draw2DEditor() {
+      const pane = document.getElementById('pane-2d');
+      if (pane.classList.contains('hidden')) return;
+      const canvas = document.getElementById('canvas-2d');
+      if (!canvas.width || !canvas.height) return;
+
+      const ctx = canvas.getContext('2d');
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const isDark = state.dark;
+      const { toScreen } = get2DTransform(canvas);
+
+      // Fondo mesa 2D
+      ctx.fillStyle = isDark ? '#161821' : '#ede6db';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Cuadrícula sutil de 10 mm
+      ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(120,100,80,0.08)';
+      ctx.lineWidth = 1;
+      const step = 10;
+      const [gx0, gy0] = get2DTransform(canvas).toWorld(0, 0);
+      const [gx1, gy1] = get2DTransform(canvas).toWorld(canvas.width, canvas.height);
+      const startX = Math.floor(gx0 / step) * step;
+      const startY = Math.floor(gy0 / step) * step;
+      ctx.beginPath();
+      for (let x = startX; x <= gx1; x += step) {
+        const [sx] = toScreen(x, 0);
+        ctx.moveTo(sx, 0); ctx.lineTo(sx, canvas.height);
+      }
+      for (let y = startY; y <= gy1; y += step) {
+        const [, sy] = toScreen(0, y);
+        ctx.moveTo(0, sy); ctx.lineTo(canvas.width, sy);
+      }
+      ctx.stroke();
+
+      // 1. Dibujar zonas de pegado y cara interna encerrada
+      STRUCTURAL_POLYS_2D.glue.forEach((poly, idx) => {
+        if (!state.hasPocket && idx >= 6) return; // Omitir pestañas del bolsillo
+        drawPolyPath(ctx, poly, toScreen);
+        ctx.fillStyle = isDark ? 'rgba(100,116,139,0.22)' : 'rgba(168,162,158,0.28)';
+        ctx.fill();
+        ctx.strokeStyle = isDark ? '#52525b' : '#78716c';
+        ctx.lineWidth = 1 * dpr;
+        ctx.stroke();
+      });
+
+      if (state.hasPocket) {
+        STRUCTURAL_POLYS_2D.enclosed.forEach(item => {
+          drawPolyPath(ctx, item.poly, toScreen);
+          ctx.fillStyle = isDark ? 'rgba(71,85,105,0.32)' : 'rgba(148,163,184,0.25)';
+          ctx.fill();
+          ctx.strokeStyle = isDark ? '#64748b' : '#64748b';
+          ctx.lineWidth = 1 * dpr;
+          ctx.stroke();
+          const b = polyBounds(item.poly);
+          const [cx, cy] = toScreen((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
+          ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+          ctx.font = `600 ${Math.max(8, 3.2 * editor2D.scale)}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('INTERNA', cx, cy);
+        });
+      }
+
+      // 2. Dibujar las caras externas activas
+      getActiveExternalFaces().forEach(f => {
+        const isActiveLayer = state.layer2D === 'both' || state.layer2D === f.side;
+        const isSelected = selectedFaceKey === f.k || selectedFaceKey === 'all';
+        const isHover = editor2D.hoverKey === f.k;
+        const b = polyBounds(f.poly2D);
+        const [sx0, sy0] = toScreen(b.minX, b.minY);
+        const [sx1, sy1] = toScreen(b.maxX, b.maxY);
+
+        ctx.save();
+        drawPolyPath(ctx, f.poly2D, toScreen);
+        ctx.clip();
+
+        if (f.canvasCache && isActiveLayer) {
+          ctx.drawImage(f.canvasCache, sx0, sy0, sx1 - sx0, sy1 - sy0);
+        } else {
+          if (state.roleMapMode) {
+            ctx.fillStyle = f.side === 'A' ? 'rgba(59,130,246,0.45)' : 'rgba(249,115,22,0.45)';
+          } else if (!isActiveLayer) {
+            ctx.fillStyle = isDark ? 'rgba(39,39,42,0.4)' : 'rgba(214,211,209,0.35)';
+          } else {
+            ctx.fillStyle = f.side === 'A'
+              ? (isDark ? 'rgba(59,130,246,0.12)' : '#e7cba9')
+              : (isDark ? 'rgba(249,115,22,0.14)' : '#ddb892');
+          }
+          ctx.fillRect(sx0, sy0, sx1 - sx0, sy1 - sy0);
+        }
+
+        // Si es Frente Cuerpo y está activo el modelo con Ventanita, mostrar calado real
+        if (f.k === 'front' && state.hasWindow) {
+          const [wx0, wy0] = toScreen(b.minX + WIN.mx, b.minY + WIN.my);
+          const [wx1, wy1] = toScreen(b.maxX - WIN.mx, b.maxY - WIN.my);
+          const wr = WIN.r * editor2D.scale;
+          ctx.fillStyle = isDark ? '#161821' : '#ede6db';
+          ctx.beginPath();
+          ctx.roundRect(wx0, wy0, wx1 - wx0, wy1 - wy0, wr);
+          ctx.fill();
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.6 * dpr;
+          ctx.setLineDash([5 * dpr, 3 * dpr]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        ctx.restore();
+
+        // Contorno y resaltado
+        drawPolyPath(ctx, f.poly2D, toScreen);
+        if (isHover && isActiveLayer) {
+          ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+          ctx.fill();
+        }
+        ctx.strokeStyle = isSelected && selectedFaceKey === f.k
+          ? '#f59e0b'
+          : (f.side === 'A' ? (isDark ? '#60a5fa' : '#2563eb') : (isDark ? '#fb923c' : '#ea580c'));
+        ctx.lineWidth = (isSelected && selectedFaceKey === f.k ? 2.6 : 1.2) * dpr;
+        ctx.stroke();
+
+        // Etiqueta legible si hay espacio
+        if (isActiveLayer) {
+          const [cx, cy] = toScreen((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
+          const fontSize = Math.max(8, Math.min(13 * dpr, 3.6 * editor2D.scale));
+          ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const label = f.n.replace(' Cuerpo', '').replace(' Bolsillo', ' B.');
+          const tw = ctx.measureText(label).width + 8 * dpr;
+          const th = fontSize + 5 * dpr;
+          ctx.fillStyle = isDark ? 'rgba(24,24,27,0.75)' : 'rgba(255,255,255,0.82)';
+          ctx.beginPath();
+          ctx.roundRect(cx - tw / 2, cy - th / 2, tw, th, 4 * dpr);
+          ctx.fill();
+          ctx.fillStyle = f.side === 'A' ? (isDark ? '#93c5fd' : '#1d4ed8') : (isDark ? '#fdba74' : '#c2410c');
+          ctx.fillText(label, cx, cy);
+        }
+      });
+    }
+
+    function setup2DEditorEvents() {
+      const canvas = document.getElementById('canvas-2d');
+      const wrap = document.getElementById('canvas2d-wrap');
+      const hoverBadge = document.getElementById('hover-face-badge');
+
+      const getCanvasPos = e => {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = canvas.width / rect.width;
+        return [(e.clientX - rect.left) * dpr, (e.clientY - rect.top) * dpr];
+      };
+
+      const hitTestFace = (sx, sy) => {
+        const [wx, wy] = get2DTransform(canvas).toWorld(sx, sy);
+        return getActiveExternalFaces().find(f => (state.layer2D === 'both' || state.layer2D === f.side) && pointInPoly(wx, wy, f.poly2D)) || null;
+      };
+
+      canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+      canvas.addEventListener('mousedown', e => {
+        const [sx, sy] = getCanvasPos(e);
+        editor2D.lastX = sx; editor2D.lastY = sy;
+        if (e.button === 2 || e.button === 1) {
+          editor2D.isPanning = true;
+          return;
+        }
+        const hit = hitTestFace(sx, sy);
+        if (hit) {
+          selectFace(hit.k);
+          if (hit.img) editor2D.isDraggingImg = true;
+        } else {
+          editor2D.isPanning = true;
+        }
+      });
+
+      window.addEventListener('mousemove', e => {
+        const pane = document.getElementById('pane-2d');
+        if (pane.classList.contains('hidden')) return;
+        const [sx, sy] = getCanvasPos(e);
+        const dx = sx - editor2D.lastX;
+        const dy = sy - editor2D.lastY;
+        editor2D.lastX = sx; editor2D.lastY = sy;
+
+        if (editor2D.isPanning) {
+          editor2D.panX += dx;
+          editor2D.panY += dy;
+          draw2DEditor();
+          return;
+        }
+        if (editor2D.isDraggingImg && selectedFaceKey !== 'all') {
+          const f = EXTERNAL_FACES.find(x => x.k === selectedFaceKey);
+          if (f && f.img) {
+            f.ox = Math.max(-100, Math.min(100, Math.round(f.ox + dx / (f.w * editor2D.scale) * 100)));
+            f.oy = Math.max(-100, Math.min(100, Math.round(f.oy - dy / (f.h * editor2D.scale) * 100)));
+            applyFaceMaterial(f);
+            updateFacePreview();
+            draw2DEditor();
+          }
+          return;
+        }
+
+        // Hover
+        const rect = canvas.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          const hit = hitTestFace(sx, sy);
+          const nextHover = hit ? hit.k : null;
+          if (nextHover !== editor2D.hoverKey) {
+            editor2D.hoverKey = nextHover;
+            canvas.style.cursor = hit ? (hit.img ? 'move' : 'pointer') : 'grab';
+            hoverBadge.textContent = hit ? `${hit.n} · Lado ${hit.side} (${hit.w}×${hit.h} mm)` : 'Clic o arrastra una imagen sobre cualquier cara';
+            draw2DEditor();
+          }
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        editor2D.isPanning = false;
+        editor2D.isDraggingImg = false;
+      });
+
+      canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.12 : 0.89;
+        editor2D.scale = Math.max(0.8, Math.min(14, editor2D.scale * factor));
+        draw2DEditor();
+      }, { passive: false });
+
+      // Drag & Drop de imágenes directo sobre cualquier cara del plano 2D
+      wrap.addEventListener('dragover', e => {
+        e.preventDefault();
+        wrap.classList.add('drop-active');
+        const [sx, sy] = getCanvasPos(e);
+        const hit = hitTestFace(sx, sy);
+        if (hit && hit.k !== editor2D.hoverKey) {
+          editor2D.hoverKey = hit.k;
+          hoverBadge.textContent = `Soltar imagen en: ${hit.n}`;
+          draw2DEditor();
+        }
+      });
+      wrap.addEventListener('dragleave', () => wrap.classList.remove('drop-active'));
+      wrap.addEventListener('drop', e => {
+        e.preventDefault();
+        wrap.classList.remove('drop-active');
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const [sx, sy] = getCanvasPos(e);
+        const hit = hitTestFace(sx, sy);
+        loadImageFile(file, img => {
+          if (hit) {
+            selectFace(hit.k);
+            applyImageToFaces([hit], img, 'smart');
+            showToast(`Imagen aplicada en ${hit.n}`);
+          } else {
+            selectFace('all');
+            applyImageToFaces(EXTERNAL_FACES, img, 'smart');
+            showToast('Imagen aplicada a las 13 caras externas');
+          }
+        });
+      });
+
+      // Botones zoom y capas 2D
+      document.getElementById('zoom2d-in').onclick = () => { editor2D.scale = Math.min(14, editor2D.scale * 1.2); draw2DEditor(); };
+      document.getElementById('zoom2d-out').onclick = () => { editor2D.scale = Math.max(0.8, editor2D.scale / 1.2); draw2DEditor(); };
+      document.getElementById('zoom2d-reset').onclick = fit2DView;
+
+      document.querySelectorAll('.layer2d-btn').forEach(btn => {
+        btn.onclick = () => {
+          state.layer2D = btn.dataset.layer2d;
+          updateLayer2DButtons();
+          draw2DEditor();
+        };
+      });
+    }
+
+    function updateLayer2DButtons() {
+      document.querySelectorAll('.layer2d-btn').forEach(btn => {
+        const active = btn.dataset.layer2d === state.layer2D;
+        btn.className = `layer2d-btn px-2 py-0.5 rounded-md font-semibold transition ${
+          active
+            ? 'bg-white dark:bg-zinc-900 text-amber-800 dark:text-amber-300 shadow-sm'
+            : 'text-stone-600 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-zinc-200'
+        }`;
+      });
+    }
+
+    /**
+     * ============================================================================
+     * 9. EXPORTACIÓN SVG 1:1 (MM) CON IMÁGENES INCRUSTADAS (LADO A / LADO B / LIMPIO)
+     * ============================================================================
+     */
+    function generateAndDownloadSVG(mode = 'A') {
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, diffH, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer } = DIM;
+      const bleed = parseFloat(document.getElementById('export-bleed').value) || 0;
+      const includeLabels = document.getElementById('export-labels').checked;
+
+      const minX = -(D + W + T_glue);
+      const maxX = W + D + Lw + D + Lw + T_glue;
+      const minY = -(H_hinge + H_lid_back + D + H_lid_front);
+      const maxY = D + T_base;
+
+      const margin = 15;
+      const svgW = (maxX - minX) + margin * 2;
+      const svgH = (maxY - minY) + margin * 2;
+      const ox = -minX + margin;
+      const oy = -minY + margin;
+
+      const p = (x, y) => `${(x + ox).toFixed(2)},${(y + oy).toFixed(2)}`;
+      const line = (x1, y1, x2, y2) =>
+        `<line x1="${(x1 + ox).toFixed(2)}" y1="${(y1 + oy).toFixed(2)}" x2="${(x2 + ox).toFixed(2)}" y2="${(y2 + oy).toFixed(2)}" />`;
+      const polyline = pts => `<polyline points="${pts.map(([x, y]) => p(x, y)).join(' ')}" />`;
+
+      const lidBaseY = -H_hinge;
+      const lidTopY = -H_hinge - H_lid_back;
+      const lidRoofY = lidTopY - D;
+      const lidFrontY = lidRoofY - H_lid_front;
+      const px0 = W + D, px1 = px0 + Lw, px2 = px1 + D, px3 = px2 + Lw, px4 = px3 + T_glue;
+
+      const cutPaths = [
+        polyline([[0, 0], [0, D], [chamfer, D + T_base], [W - chamfer, D + T_base], [W, D], [W, 0]]),
+        polyline([[-D, 0], [-D + chamfer, T_side_base], [-chamfer, T_side_base], [0, 0]]),
+        polyline([[-D, 0], [-D - W, 0], [-D - W - T_glue, -chamfer], [-D - W - T_glue, -H_front + chamfer], [-D - W, -H_front], [-D, -H_front], [0, -H_hinge]]),
+        polyline([
+          [0, lidBaseY], [-D, lidBaseY + diffH], [-D - T_lid_glue, lidBaseY + diffH - chamfer],
+          [-D - T_lid_glue, lidTopY + chamfer], [-D, lidTopY], [0, lidTopY],
+          [0, lidRoofY], [0, lidFrontY], [W, lidFrontY], [W, lidRoofY],
+          [W, lidTopY], [W + D, lidTopY], [W + D + T_lid_glue, lidTopY + chamfer],
+          [W + D + T_lid_glue, lidBaseY + diffH - chamfer], [W + D, lidBaseY + diffH], [W, lidBaseY]
+        ]),
+        polyline([[W, -H_hinge], [W + D, -H_front]]),
+        polyline([[W, 0], [W + chamfer, T_side_base], [W + D - chamfer, T_side_base], [W + D, 0]]),
+        polyline([[px0, -(H_front - 1)], [px0 + T_lid_glue + 1, -(H_front - 1)], [px0 + T_lid_glue + 1, -Lh], [px1, -Lh], [px2, -Lh], [px3, -Lh], [px4, -Lh + chamfer], [px4, -chamfer], [px3, 0], [px2, 0]]),
+        polyline([[px1, 0], [px1 - T_pflap, chamfer], [px1 - T_pflap, Lw - chamfer], [px1, Lw], [px2, Lw], [px2 + T_pflap, Lw - chamfer], [px2 + T_pflap, chamfer], [px2, 0]]),
+        line(px0, 0, px1, 0)
+      ];
+
+      const valleyLines = [
+        line(0, 0, W, 0), line(0, 0, 0, -H_hinge), line(W, 0, W, -H_hinge), line(0, -H_hinge, W, -H_hinge),
+        line(0, D, W, D), line(-D, 0, 0, 0), line(-D, 0, -D, -H_front), line(-D - W, 0, -D - W, -H_front),
+        line(W, 0, W + D, 0), line(0, lidBaseY, 0, lidTopY), line(W, lidBaseY, W, lidTopY),
+        line(-D, lidBaseY + diffH, -D, lidTopY), line(W + D, lidBaseY + diffH, W + D, lidTopY),
+        line(0, lidTopY, W, lidTopY), line(0, lidRoofY, W, lidRoofY)
+      ];
+
+      const mountainLines = [
+        line(px0, 0, px0, -(H_front - 1)), line(px1, 0, px1, -Lh), line(px2, 0, px2, -Lh),
+        line(px3, 0, px3, -Lh), line(px1, 0, px2, 0), line(px1, 0, px1, Lw), line(px2, 0, px2, Lw)
+      ];
+
+      // Incrustar arte vectorial/raster por cara según el lado elegido
+      const clipDefs = [];
+      const artElems = [];
+      if (mode === 'A' || mode === 'B') {
+        EXTERNAL_FACES.filter(f => f.side === mode && faceHasContent(f)).forEach(f => {
+          const hiRes = renderFaceCanvas(f, 12); // ~305 DPI para impresión nítida
+          const dataUrl = hiRes.toDataURL('image/png');
+          const b = polyBounds(f.poly2D);
+          const clipId = `clip-${f.k}`;
+
+          // Expandir ligeramente el clipPath si hay sangrado
+          const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2;
+          const ptsBleed = f.poly2D.map(([x, y]) => {
+            const bx = bleed ? x + Math.sign(x - cx) * bleed : x;
+            const by = bleed ? y + Math.sign(y - cy) * bleed : y;
+            return p(bx, by);
+          }).join(' ');
+
+          clipDefs.push(`<clipPath id="${clipId}"><polygon points="${ptsBleed}" /></clipPath>`);
+          artElems.push(
+            `<image href="${dataUrl}" x="${(b.minX - bleed + ox).toFixed(2)}" y="${(b.minY - bleed + oy).toFixed(2)}" width="${(b.w + bleed * 2).toFixed(2)}" height="${(b.h + bleed * 2).toFixed(2)}" preserveAspectRatio="none" clip-path="url(#${clipId})" />`
+          );
+        });
+      }
+
+      const titleMap = {
+        A: 'LADO A · CAJA + TAPA (CON ARTE)',
+        B: 'LADO B · BOLSILLO ESPEJADO (IMPRESIÓN DOBLE CARA)',
+        clean: 'TROQUEL LIMPIO (SOLO LÍNEAS 1:1 MM)'
+      };
+
+      // En Lado B se espeja todo horizontalmente para que al voltear la hoja impresa coincida al milímetro con el Lado A
+      const mirrorOpen = mode === 'B' ? `<g transform="translate(${svgW.toFixed(2)}, 0) scale(-1, 1)">` : '<g>';
+      const mirrorClose = '</g>';
+
+      const labelsSVG = includeLabels ? `
+  <g id="etiquetas" font-family="Arial, sans-serif" font-size="3" fill="#78716c" text-anchor="middle">
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(-H_hinge / 2 + oy).toFixed(2)}">ESPALDA (A)</text>
+    <text x="${(-D - W / 2 + ox).toFixed(2)}" y="${(-H_front / 2 + oy).toFixed(2)}">FRENTE (A)</text>
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(D / 2 + oy).toFixed(2)}">BASE (A)</text>
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(lidRoofY + D / 2 + oy).toFixed(2)}">TECHO TAPA (A)</text>
+    <text x="${(W / 2 + ox).toFixed(2)}" y="${(lidFrontY + H_lid_front / 2 + oy).toFixed(2)}">FRENTE TAPA (A)</text>
+    <text x="${(px0 + Lw / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + oy).toFixed(2)}" fill="#c2410c" font-size="2.4">FRENTE BOLS. (B)</text>
+    <text x="${(px1 + D / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + oy).toFixed(2)}" fill="#c2410c" font-size="2.4">EXT. BOLS. (B)</text>
+    <text x="${(px2 + Lw / 2 + ox).toFixed(2)}" y="${(-Lh / 2 + oy).toFixed(2)}" fill="#c2410c" font-size="2.4">ESPALDA BOLS. (B)</text>
+  </g>` : '';
+
+      const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="${svgW.toFixed(2)}mm"
+     height="${svgH.toFixed(2)}mm"
+     viewBox="0 0 ${svgW.toFixed(2)} ${svgH.toFixed(2)}">
+  <title>Caja Flip-Top Studio — ${titleMap[mode]}</title>
+  <defs>
+    ${clipDefs.join('\n    ')}
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff" />
+
+  <g font-family="Arial, sans-serif" fill="#44403c">
+    <text x="12" y="10" font-size="4.2" font-weight="bold">CAJA FLIP-TOP STUDIO v2 — ${titleMap[mode]}</text>
+    <text x="12" y="15" font-size="3">Caja: ${W}×${D}×${H} mm | Bolsillo BIC J6: ${Lw}×${D}×${Lh} mm | Sangrado: ${bleed} mm</text>
+    <line x1="12" y1="19.5" x2="62" y2="19.5" stroke="#1c1917" stroke-width="0.5" />
+    <line x1="12" y1="18" x2="12" y2="21" stroke="#1c1917" stroke-width="0.5" />
+    <line x1="62" y1="18" x2="62" y2="21" stroke="#1c1917" stroke-width="0.5" />
+    <text x="37" y="23.2" font-size="2.6" text-anchor="middle">Verificación 1:1 = 50 mm</text>
+  </g>
+
+  ${mirrorOpen}
+  <g id="arte">
+    ${artElems.join('\n    ')}
+  </g>
+  <g id="doblez-valle" fill="none" stroke="#2563eb" stroke-width="0.35" stroke-dasharray="2.5,1.8">
+    ${valleyLines.join('\n    ')}
+  </g>
+  <g id="doblez-montana" fill="none" stroke="#ea580c" stroke-width="0.4" stroke-dasharray="2.5,1.8">
+    ${mountainLines.join('\n    ')}
+  </g>
+  <g id="corte" fill="none" stroke="#1c1917" stroke-width="0.45" stroke-linecap="round" stroke-linejoin="round">
+    ${cutPaths.join('\n    ')}
+  </g>
+  ${labelsSVG}
+  ${mirrorClose}
+</svg>`;
+
+      const filename = mode === 'A' ? 'caja_fliptop_ladoA_arte_1a1.svg'
+        : mode === 'B' ? 'caja_fliptop_ladoB_bolsillo_espejado_1a1.svg'
+        : 'caja_fliptop_troquel_limpio_1a1.svg';
+
+      const url = URL.createObjectURL(new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Descargado: ${filename}`);
+    }
+
+    /**
+     * ============================================================================
+     * 9B. EXPORTACIÓN PDF 1:1 LIMPIO (300 DPI · SIN TEXTO · SIN BORDES · SIN ESPEJO)
+     * ============================================================================
+     */
+    function generateAndDownloadPDF(duplex = true) {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('No se cargó jsPDF (revisa tu conexión a internet)');
+        return;
+      }
+      showToast('Generando PDF 1:1 limpio (300 DPI)...');
+
+      const PAPER_SIZES = {
+        a4:     { w: 297,   h: 210 },
+        letter: { w: 279.4, h: 215.9 },
+        legal:  { w: 355.6, h: 215.9 },
+        a3:     { w: 420,   h: 297 }
+      };
+      const paperKey = document.getElementById('pdf-paper-size').value || 'a4';
+      const paper = PAPER_SIZES[paperKey] || PAPER_SIZES.a4;
+      const bleed = parseFloat(document.getElementById('export-bleed').value) || 0;
+
+      const { W, D, H_front, H_hinge, H_lid_back, H_lid_front, diffH, Lw, Lh, T_base, T_side_base, T_glue, T_pflap, T_lid_glue, chamfer: c } = DIM;
+      const minX = -(D + W + T_glue);                                          // -89
+      const maxX = state.hasPocket ? (W + D + Lw + D + Lw + T_glue) : (W + D + T_lid_glue); // 167 o 87
+      const minY = -(H_hinge + H_lid_back + D + H_lid_front);                  // -138
+      const maxY = D + T_base;                                                 // 34
+      const dieW = maxX - minX;
+      const dieH = maxY - minY;
+
+      // Centrado exacto en la hoja (sin texto, sin espejo, con silueta de recorte)
+      const ox = (paper.w - dieW) / 2 - minX;
+      const oy = (paper.h - dieH) / 2 - minY;
+
+      const lidBaseY = -H_hinge, lidTopY = -H_hinge - H_lid_back;
+      const lidRoofY = lidTopY - D, lidFrontY = lidRoofY - H_lid_front;
+      const px0 = W + D, px1 = px0 + Lw, px2 = px1 + D, px3 = px2 + Lw, px4 = px3 + T_glue;
+
+      // Silueta exterior de recorte (incluye pestañas de pegado; se adapta a Con/Sin Encendedor)
+      const cutPolys = [
+        [[0, 0], [0, D], [c, D + T_base], [W - c, D + T_base], [W, D], [W, 0]],
+        [[-D, 0], [-D + c, T_side_base], [-c, T_side_base], [0, 0]],
+        [[-D, 0], [-D - W, 0], [-D - W - T_glue, -c], [-D - W - T_glue, -H_front + c], [-D - W, -H_front], [-D, -H_front], [0, -H_hinge]],
+        [
+          [0, lidBaseY], [-D, lidBaseY + diffH], [-D - T_lid_glue, lidBaseY + diffH - c],
+          [-D - T_lid_glue, lidTopY + c], [-D, lidTopY], [0, lidTopY],
+          [0, lidRoofY], [0, lidFrontY], [W, lidFrontY], [W, lidRoofY],
+          [W, lidTopY], [W + D, lidTopY], [W + D + T_lid_glue, lidTopY + c],
+          [W + D + T_lid_glue, lidBaseY + diffH - c], [W + D, lidBaseY + diffH], [W, lidBaseY]
+        ],
+        [[W, -H_hinge], [W + D, -H_front]],
+        [[W, 0], [W + c, T_side_base], [W + D - c, T_side_base], [W + D, 0]]
+      ];
+
+      if (state.hasPocket) {
+        cutPolys.push(
+          [[px0, -H_front], [px0, -(H_front - 1)], [px0 + T_lid_glue + 1, -(H_front - 1)], [px0 + T_lid_glue + 1, -Lh], [px1, -Lh], [px2, -Lh], [px3, -Lh], [px4, -Lh + c], [px4, -c], [px3, 0], [px2, 0]],
+          [[px1, 0], [px1 - T_pflap, c], [px1 - T_pflap, Lw - c], [px1, Lw], [px2, Lw], [px2 + T_pflap, Lw - c], [px2 + T_pflap, c], [px2, 0]],
+          [[px0, 0], [px1, 0]]
+        );
+      } else {
+        // Cerrar borde derecho del cuerpo cuando es modelo Sin Encendedor
+        cutPolys.push([[W + D, 0], [W + D, -H_front]]);
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [paper.w, paper.h] });
+
+      const renderPage = (side, isFirst) => {
+        if (!isFirst) doc.addPage([paper.w, paper.h], 'landscape');
+        const tx = x => x + ox;
+        const ty = y => y + oy;
+
+        const DPI_PX = 12; // ~305 DPI
+        const pad = bleed;
+        const artW = dieW + pad * 2;
+        const artH = dieH + pad * 2;
+        const artCanvas = document.createElement('canvas');
+        artCanvas.width = Math.round(artW * DPI_PX);
+        artCanvas.height = Math.round(artH * DPI_PX);
+        const ctx = artCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, artCanvas.width, artCanvas.height);
+
+        const toPx = (x, y) => [(x - minX + pad) * DPI_PX, (y - minY + pad) * DPI_PX];
+        const facesToDraw = getActiveExternalFaces().filter(f => f.side === side && faceHasContent(f));
+
+        facesToDraw.forEach(f => {
+          const hiRes = renderFaceCanvas(f, DPI_PX);
+          const b = polyBounds(f.poly2D);
+          const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2;
+          ctx.save();
+          ctx.beginPath();
+          f.poly2D.forEach(([x, y], i) => {
+            const bx = bleed ? x + Math.sign(x - cx) * bleed : x;
+            const by = bleed ? y + Math.sign(y - cy) * bleed : y;
+            const [px, py] = toPx(bx, by);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          });
+          ctx.closePath();
+          ctx.clip();
+          const [x0, y0] = toPx(b.minX - bleed, b.minY - bleed);
+          ctx.drawImage(hiRes, x0, y0, (b.w + bleed * 2) * DPI_PX, (b.h + bleed * 2) * DPI_PX);
+
+          // Si el modelo tiene ventanita frontal, dejar el hueco limpio en blanco
+          if (f.k === 'front' && state.hasWindow) {
+            const [wx0, wy0] = toPx(b.minX + WIN.mx, b.minY + WIN.my);
+            const [wx1, wy1] = toPx(b.maxX - WIN.mx, b.maxY - WIN.my);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(wx0, wy0, wx1 - wx0, wy1 - wy0, WIN.r * DPI_PX);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+
+        const imgX = minX + ox - pad;
+        const imgY = minY + oy - pad;
+        doc.addImage(artCanvas.toDataURL('image/png'), 'PNG', imgX, imgY, artW, artH, undefined, 'FAST');
+
+        // Pliegues de doblez Valle (+90°, gris fino punteado discreto)
+        const valleySegs = [
+          [0, 0, W, 0], [0, 0, 0, -H_hinge], [W, 0, W, -H_hinge], [0, -H_hinge, W, -H_hinge],
+          [0, D, W, D], [-D, 0, 0, 0], [-D, 0, -D, -H_front], [-D - W, 0, -D - W, -H_front],
+          [W, 0, W + D, 0], [0, lidBaseY, 0, lidTopY], [W, lidBaseY, W, lidTopY],
+          [-D, lidBaseY + diffH, -D, lidTopY], [W + D, lidBaseY + diffH, W + D, lidTopY],
+          [0, lidTopY, W, lidTopY], [0, lidRoofY, W, lidRoofY]
+        ];
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineWidth(0.22);
+        doc.setLineDashPattern([2.0, 1.8], 0);
+        valleySegs.forEach(([x1, y1, x2, y2]) => doc.line(tx(x1), ty(y1), tx(x2), ty(y2)));
+
+        // Pliegues de doblez Montaña (-90° bolsillo, naranja suave guion-punto; solo Con Encendedor)
+        if (state.hasPocket) {
+          const mountainSegs = [
+            [px0, 0, px0, -(H_front - 1)], [px1, 0, px1, -Lh], [px2, 0, px2, -Lh],
+            [px3, 0, px3, -Lh], [px1, 0, px2, 0], [px1, 0, px1, Lw], [px2, 0, px2, Lw]
+          ];
+          doc.setDrawColor(234, 118, 45);
+          doc.setLineWidth(0.24);
+          doc.setLineDashPattern([3.0, 1.5, 0.8, 1.5], 0);
+          mountainSegs.forEach(([x1, y1, x2, y2]) => doc.line(tx(x1), ty(y1), tx(x2), ty(y2)));
+        }
+
+        // Silueta vectorial exterior de recorte (+ ventanita si está activa; sin letras ni espejo)
+        doc.setDrawColor(28, 25, 23);
+        doc.setLineWidth(0.35);
+        doc.setLineDashPattern([], 0);
+        cutPolys.forEach(pts => {
+          for (let i = 0; i < pts.length - 1; i++) {
+            doc.line(tx(pts[i][0]), ty(pts[i][1]), tx(pts[i + 1][0]), ty(pts[i + 1][1]));
+          }
+        });
+        if (state.hasWindow && side === 'A') {
+          doc.roundedRect(tx(-D - W + WIN.mx), ty(-H_front + WIN.my), WIN.w, WIN.h, WIN.r, WIN.r, 'S');
+        }
+      };
+
+      renderPage('A', true);
+      if (duplex && state.hasPocket) renderPage('B', false);
+
+      const suffix = !state.hasPocket ? 'sin_encendedor' : (duplex ? 'completo' : 'ladoA');
+      const winTag = state.hasWindow ? '_ventanita' : '';
+      const fname = `caja_fliptop_${paperKey}_${suffix}${winTag}_1a1.pdf`;
+      doc.save(fname);
+      showToast(`PDF listo con silueta de recorte: ${fname}`);
+    }
+
+    /**
+     * ============================================================================
+     * 10. ESCENA 3D, MODO OSCURO Y CÁMARA ORBITAL
+     * ============================================================================
+     */
+    function applyTheme(isDark) {
+      state.dark = isDark;
+      document.documentElement.classList.toggle('dark', isDark);
+      localStorage.setItem('fliptop-theme', isDark ? 'dark' : 'light');
+
+      if (scene) {
+        const bgHex = isDark ? 0x121318 : 0xf3ede4;
+        scene.background.setHex(bgHex);
+        scene.fog.color.setHex(bgHex);
+
+        if (matPlane) matPlane.material.color.setHex(isDark ? 0x1a1c24 : 0xeee6da);
+        if (gridHelper) {
+          scene.remove(gridHelper);
+          gridHelper.geometry.dispose();
+        }
+        gridHelper = new THREE.GridHelper(
+          500, 50,
+          isDark ? 0x3b4252 : 0xc7bba8,
+          isDark ? 0x252834 : 0xdfd5c5
+        );
+        gridHelper.position.y = 0.0;
+        scene.add(gridHelper);
+
+        hemiLight.intensity = isDark ? 0.95 : 0.85;
+        fillLight.intensity = isDark ? 0.55 : 0.35;
+        matCutLine.color.setHex(isDark ? 0x0f172a : 0x1c1917);
+      }
+      draw2DEditor();
+    }
+
+    function initScene() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf3ede4);
+      scene.fog = new THREE.Fog(0xf3ede4, 480, 1050);
+
+      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 1, 2000);
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      container.appendChild(renderer.domElement);
+
+      hemiLight = new THREE.HemisphereLight(0xfffaf2, 0xd4c5b2, 0.85);
+      hemiLight.position.set(0, 300, 0);
+      scene.add(hemiLight);
+
+      dirLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
+      dirLight.position.set(120, 220, 140);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 20;
+      dirLight.shadow.camera.far = 650;
+      const d = 180;
+      dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d;
+      dirLight.shadow.bias = -0.0005;
+      scene.add(dirLight);
+
+      fillLight = new THREE.DirectionalLight(0xe0ecff, 0.35);
+      fillLight.position.set(-140, 120, -100);
+      scene.add(fillLight);
+
+      matPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(1400, 1400),
+        new THREE.MeshStandardMaterial({ color: 0xeee6da, roughness: 0.95 })
+      );
+      matPlane.rotation.x = -Math.PI / 2;
+      matPlane.position.y = -0.1;
+      matPlane.receiveShadow = true;
+      scene.add(matPlane);
+
+      buildBoxHierarchy();
+      buildLighterModel();
+      cachedLidSlider = document.getElementById('lid-slider');
+      updateFoldAnimation();
+      setupOrbitControls(renderer.domElement);
+      window.addEventListener('resize', onViewportResize);
+    }
+
+    function onViewportResize() {
+      const container = document.getElementById('canvas-container');
+      if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      }
+      fit2DView();
+    }
+
+    function setupOrbitControls(domEl) {
+      domEl.addEventListener('contextmenu', e => e.preventDefault());
+      domEl.addEventListener('mousedown', e => {
+        if (e.button === 0) orbit.isDragging = true;
+        if (e.button === 2 || e.button === 1) orbit.isPanning = true;
+        orbit.lastX = e.clientX; orbit.lastY = e.clientY;
+      });
+      window.addEventListener('mousemove', e => {
+        if (!orbit.isDragging && !orbit.isPanning) return;
+        const dx = e.clientX - orbit.lastX, dy = e.clientY - orbit.lastY;
+        orbit.lastX = e.clientX; orbit.lastY = e.clientY;
+        if (orbit.isDragging) {
+          orbit.desiredTheta -= dx * 0.007;
+          orbit.desiredPhi = Math.max(0.06, Math.min(Math.PI / 2 - 0.04, orbit.desiredPhi - dy * 0.007));
+        } else {
+          const panSpeed = orbit.desiredRadius * 0.0014;
+          const forward = new THREE.Vector3();
+          camera.getWorldDirection(forward);
+          const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+          const up = new THREE.Vector3().crossVectors(right, forward).normalize();
+          orbit.desiredTarget.addScaledVector(right, -dx * panSpeed);
+          orbit.desiredTarget.addScaledVector(up, dy * panSpeed);
+        }
+      });
+      window.addEventListener('mouseup', () => { orbit.isDragging = false; orbit.isPanning = false; });
+      domEl.addEventListener('wheel', e => {
+        e.preventDefault();
+        orbit.desiredRadius = Math.max(95, Math.min(580, orbit.desiredRadius + e.deltaY * 0.25));
+      }, { passive: false });
+
+      domEl.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+          orbit.isDragging = true;
+          orbit.lastX = e.touches[0].clientX; orbit.lastY = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+          orbit.isDragging = false;
+          orbit.lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        }
+      }, { passive: false });
+      domEl.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (e.touches.length === 1 && orbit.isDragging) {
+          const dx = e.touches[0].clientX - orbit.lastX, dy = e.touches[0].clientY - orbit.lastY;
+          orbit.lastX = e.touches[0].clientX; orbit.lastY = e.touches[0].clientY;
+          orbit.desiredTheta -= dx * 0.008;
+          orbit.desiredPhi = Math.max(0.06, Math.min(Math.PI / 2 - 0.04, orbit.desiredPhi - dy * 0.008));
+        } else if (e.touches.length === 2) {
+          const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+          orbit.desiredRadius = Math.max(95, Math.min(580, orbit.desiredRadius + (orbit.lastPinchDist - dist) * 0.7));
+          orbit.lastPinchDist = dist;
+        }
+      }, { passive: false });
+      domEl.addEventListener('touchend', () => { orbit.isDragging = false; });
+    }
+
+    function setCameraView(mode) {
+      if (mode === '3d') { orbit.desiredTheta = 0.58; orbit.desiredPhi = 1.12; orbit.desiredRadius = 215; orbit.desiredTarget.set(10, 42, 12); }
+      else if (mode === 'top') { orbit.desiredTheta = 0; orbit.desiredPhi = 0.06; orbit.desiredRadius = 350; orbit.desiredTarget.set(14, 0, -48); }
+      else if (mode === 'front') { orbit.desiredTheta = 0; orbit.desiredPhi = 1.45; orbit.desiredRadius = 195; orbit.desiredTarget.set(10, 44, 12); }
+      else if (mode === 'back') { orbit.desiredTheta = Math.PI; orbit.desiredPhi = 1.45; orbit.desiredRadius = 195; orbit.desiredTarget.set(10, 44, 12); }
+      else if (mode === 'pocket') { orbit.desiredTheta = 1.25; orbit.desiredPhi = 1.28; orbit.desiredRadius = 170; orbit.desiredTarget.set(34, 42, 12); }
+    }
+
+    /**
+     * ============================================================================
+     * 11. INTERFAZ DE USUARIO Y SINCRONIZACIÓN
+     * ============================================================================
+     */
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2600);
+    }
+
+    function setViewMode(mode) {
+      if (window.innerWidth < 640 && mode === 'split') mode = '3d';
+      state.viewMode = mode;
+      const p2 = document.getElementById('pane-2d');
+      const p3 = document.getElementById('pane-3d');
+      p2.classList.toggle('hidden', mode === '3d');
+      p2.classList.toggle('flex', mode !== '3d');
+      p3.classList.toggle('hidden', mode === '2d');
+
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        const active = btn.dataset.view === mode;
+        btn.className = `view-btn ${btn.dataset.view === 'split' ? 'hidden sm:inline-block ' : ''}px-2.5 py-1 rounded-lg transition ${
+          active
+            ? 'bg-white dark:bg-zinc-900 text-amber-800 dark:text-amber-300 shadow-sm'
+            : 'text-stone-600 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-zinc-100'
+        }`;
+      });
+      requestAnimationFrame(onViewportResize);
+    }
+
+    function selectFace(key) {
+      selectedFaceKey = key;
+      selectedStickerId = null;
+      document.getElementById('design-sel').value = key;
+      updateFacePreview();
+      if (window._renderStickerList) window._renderStickerList();
+      draw2DEditor();
+    }
+
+    function getTargetFaces() {
+      return selectedFaceKey === 'all' ? EXTERNAL_FACES : EXTERNAL_FACES.filter(f => f.k === selectedFaceKey);
+    }
+
+    function getActiveFaceForStickers() {
+      return selectedFaceKey === 'all' ? EXTERNAL_FACES[0] : EXTERNAL_FACES.find(f => f.k === selectedFaceKey);
+    }
+
+    function updateFacePreview() {
+      const f = selectedFaceKey === 'all'
+        ? (EXTERNAL_FACES.find(faceHasContent) || EXTERNAL_FACES[0])
+        : EXTERNAL_FACES.find(x => x.k === selectedFaceKey);
+      const pv = document.getElementById('design-prev');
+      const rendered = renderFaceCanvas(f, 6);
+      pv.width = rendered.width;
+      pv.height = rendered.height;
+      const ctx = pv.getContext('2d');
+      ctx.drawImage(rendered, 0, 0);
+      if (!faceHasContent(f)) {
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.font = '600 18px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(f.n, pv.width / 2, pv.height / 2);
+      }
+
+      const pill = document.getElementById('sel-side-pill');
+      pill.textContent = selectedFaceKey === 'all' ? 'Todas (13)' : `Lado ${f.side}`;
+      document.getElementById('d-zoom').value = Math.round(f.zoom * 100);
+      document.getElementById('d-ox').value = f.ox;
+      document.getElementById('d-oy').value = f.oy;
+      document.getElementById('d-zoom-v').textContent = Math.round(f.zoom * 100) + '%';
+      document.getElementById('d-ox-v').textContent = f.ox;
+      document.getElementById('d-oy-v').textContent = f.oy;
+      document.getElementById('d-bgcolor').value = f.fillColor || f.bgColor || '#ffffff';
+    }
+
+    function buildDesignPanelUI() {
+      const listA = document.getElementById('list-side-a');
+      const listB = document.getElementById('list-side-b');
+      const selEl = document.getElementById('design-sel');
+
+      selEl.onchange = e => selectFace(e.target.value);
+
+      function rebuildFaceListsUI() {
+        const activeFaces = getActiveExternalFaces();
+        listA.innerHTML = '';
+        listB.innerHTML = '';
+
+        const countA = activeFaces.filter(f => f.side === 'A').length;
+        document.getElementById('title-side-a').textContent = `Externas · Lado A — Caja y Tapa (${countA})`;
+        document.getElementById('section-side-b').classList.toggle('hidden', !state.hasPocket);
+        document.getElementById('autodesign-title').textContent = `Auto-Diseño (${activeFaces.length} Caras)`;
+
+        selEl.innerHTML = `<option value="all">Todas las ${activeFaces.length} caras externas</option>` +
+          activeFaces.map(f => `<option value="${f.k}">[Lado ${f.side}] ${f.n} (${f.w}×${f.h} mm)</option>`).join('');
+        if (selectedFaceKey !== 'all' && !activeFaces.some(f => f.k === selectedFaceKey)) {
+          selectedFaceKey = 'all';
+        }
+        selEl.value = selectedFaceKey;
+
+        activeFaces.forEach(f => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center gap-1.5 px-1.5 py-1 rounded-lg hover:bg-stone-200/60 dark:hover:bg-zinc-700/50 transition';
+          row.innerHTML = `
+            <span id="status-dot-${f.k}" class="w-2 h-2 rounded-full bg-stone-300 dark:bg-zinc-600 shrink-0"></span>
+            <button type="button" class="face-pick flex-1 text-left text-[11px] text-stone-700 dark:text-zinc-200 truncate" title="Seleccionar en editor">${f.n} <span class="text-[10px] text-stone-400 dark:text-zinc-500">${f.w}×${f.h}</span></button>
+            <label class="cursor-pointer text-[10px] font-semibold bg-stone-700 dark:bg-zinc-700 hover:bg-stone-800 dark:hover:bg-zinc-600 text-white rounded-md px-2 py-0.5 shrink-0">Subir<input type="file" accept="image/*" class="hidden" /></label>
+            <button type="button" class="face-del w-5 h-5 text-[10px] bg-stone-100 dark:bg-zinc-800 hover:bg-red-100 dark:hover:bg-red-900/40 text-stone-500 hover:text-red-600 border border-stone-200 dark:border-zinc-700 rounded-md shrink-0" title="Quitar">✕</button>
+          `;
+          row.querySelector('.face-pick').onclick = () => selectFace(f.k);
+          const inp = row.querySelector('input');
+          inp.onchange = e => {
+            const file = e.target.files[0];
+            inp.value = '';
+            if (!file) return;
+            loadImageFile(file, img => {
+              selectFace(f.k);
+              applyImageToFaces([f], img, 'smart');
+              showToast(`Imagen aplicada en ${f.n}`);
+            });
+          };
+          row.querySelector('.face-del').onclick = () => {
+            f.img = null; f.fillColor = null; f.crop = null; f.overlays = [];
+            applyFaceMaterial(f);
+            updateCoverageUI();
+            updateFacePreview();
+            draw2DEditor();
+          };
+          (f.side === 'A' ? listA : listB).appendChild(row);
+        });
+      }
+
+      function syncBoxModelUI() {
+        const btnWith = document.getElementById('model-with-pocket');
+        const btnNo = document.getElementById('model-no-pocket');
+        const pill = document.getElementById('model-dims-pill');
+        const activeCls = 'py-1.5 px-2 rounded-lg border border-amber-600 bg-amber-600 text-white shadow-sm transition';
+        const idleCls = 'py-1.5 px-2 rounded-lg border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-stone-700 dark:text-zinc-300 hover:bg-stone-50 dark:hover:bg-zinc-800 transition';
+        btnWith.className = state.hasPocket ? activeCls : idleCls;
+        btnNo.className = !state.hasPocket ? activeCls : idleCls;
+        pill.textContent = (state.hasPocket ? 'Con Encendedor' : 'Sin Encendedor') + (state.hasWindow ? ' + Ventana' : '');
+        document.getElementById('model-window-toggle').checked = state.hasWindow;
+
+        editor2D.bounds.maxX = state.hasPocket
+          ? (DIM.W + DIM.D + DIM.Lw + DIM.D + DIM.Lw + DIM.T_glue)
+          : (DIM.W + DIM.D + DIM.T_lid_glue);
+
+        rebuildFaceListsUI();
+        updateFoldAnimation();
+        updateFrontWindowMesh();
+        refreshAllMaterials();
+        fit2DView();
+        updateFacePreview();
+      }
+
+      document.getElementById('model-with-pocket').onclick = () => {
+        state.hasPocket = true;
+        syncBoxModelUI();
+        showToast('Modelo: Con Encendedor BIC J6 (13 caras)');
+      };
+      document.getElementById('model-no-pocket').onclick = () => {
+        state.hasPocket = false;
+        syncBoxModelUI();
+        showToast('Modelo: Sin Encendedor — Caja Clásica (10 caras)');
+      };
+      document.getElementById('model-window-toggle').onchange = e => {
+        state.hasWindow = e.target.checked;
+        syncBoxModelUI();
+        showToast(state.hasWindow ? 'Ventanita frontal activada (35×38 mm)' : 'Ventanita frontal desactivada');
+      };
+
+      syncBoxModelUI();
+
+      // Auto-Diseño: todas las caras activas
+      document.getElementById('design-all').onchange = e => {
+        const file = e.target.files[0]; e.target.value = '';
+        loadImageFile(file, img => {
+          const active = getActiveExternalFaces();
+          selectFace('all');
+          applyImageToFaces(active, img, 'smart');
+          showToast(`${active.length} caras cubiertas automáticamente`);
+        });
+      };
+
+      // Auto-Diseño: Envoltura Continua
+      document.getElementById('design-wrap').onchange = e => {
+        const file = e.target.files[0]; e.target.value = '';
+        loadImageFile(file, img => {
+          const active = getActiveExternalFaces();
+          selectFace('all');
+          applyImageToFaces(active, img, 'wrap');
+          showToast(`Envoltura continua aplicada a las ${active.length} caras`);
+        });
+      };
+
+      // Drag & Drop sobre caja Auto-Diseño
+      const dz = document.getElementById('auto-dropzone');
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drop-active'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('drop-active'));
+      dz.addEventListener('drop', e => {
+        e.preventDefault(); dz.classList.remove('drop-active');
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        loadImageFile(file, img => {
+          const active = getActiveExternalFaces();
+          selectFace('all');
+          applyImageToFaces(active, img, 'smart');
+          showToast(`${active.length} caras cubiertas automáticamente`);
+        });
+      });
+
+      document.getElementById('design-autofill').onclick = autoFillEmptyFaces;
+      document.getElementById('smart-orient').onchange = e => { state.smartOrient = e.target.checked; };
+
+      async function loadSkinPack(manifestUrl) {
+        try {
+          showToast('Cargando diseño (13 caras)...');
+          const res = await fetch(manifestUrl + '?t=' + Date.now());
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const pack = await res.json();
+
+          if (pack.innerColor) {
+            state.innerColorHex = pack.innerColor;
+            state.innerCustomColor = true;
+            document.getElementById('inner-custom-toggle').checked = true;
+            document.getElementById('inner-color-picker').value = pack.innerColor;
+          }
+
+          const loadUrl = url => new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = url + '?t=' + Date.now();
+          });
+
+          const jobs = EXTERNAL_FACES.map(async f => {
+            f.overlays = [];
+            const url = pack.faces && pack.faces[f.k];
+            if (!url) { f.img = null; f.fillColor = null; return; }
+            const img = await loadUrl(url);
+            f.img = img;
+            f.fillColor = null;
+            f.bgColor = pack.innerColor || '#1a242e';
+            f.rot = 0; f.fh = false; f.fv = false; f.zoom = 1; f.ox = 0; f.oy = 0; f.crop = null;
+          });
+          await Promise.all(jobs);
+
+          selectFace('all');
+          refreshAllMaterials();
+          updateFacePreview();
+          showToast(`Diseño "${pack.name}" aplicado`);
+        } catch (err) {
+          console.error(err);
+          showToast('No se pudo cargar el diseño (abre vía servidor local)');
+        }
+      }
+      window._loadSkinPack = loadSkinPack;
+
+      document.getElementById('design-clear').onclick = () => {
+        EXTERNAL_FACES.forEach(f => {
+          f.img = null; f.fillColor = null; f.crop = null; f.overlays = [];
+          applyFaceMaterial(f);
+        });
+        selectedStickerId = null;
+        updateCoverageUI();
+        updateFacePreview();
+        renderStickerList();
+        draw2DEditor();
+        showToast('Diseño limpiado');
+      };
+
+      // =========================================================================
+      // PINTURA / COLOR BASE (CAPA 0)
+      // =========================================================================
+      function applyBasePaint(colorVal) {
+        const scope = document.getElementById('paint-scope').value;
+        const isKraft = colorVal === 'kraft';
+
+        if (scope === 'inner') {
+          state.innerCustomColor = !isKraft;
+          if (!isKraft) state.innerColorHex = colorVal;
+          document.getElementById('inner-custom-toggle').checked = state.innerCustomColor;
+          document.getElementById('inner-color-picker').value = state.innerColorHex;
+          refreshAllMaterials();
+          showToast(isKraft ? 'Interior restaurado a cartón kraft' : `Interior pintado (${colorVal})`);
+          return;
+        }
+
+        let targetList = EXTERNAL_FACES;
+        if (scope === 'A') targetList = EXTERNAL_FACES.filter(f => f.side === 'A');
+        else if (scope === 'B') targetList = EXTERNAL_FACES.filter(f => f.side === 'B');
+        else if (scope === 'selected') targetList = getTargetFaces();
+
+        targetList.forEach(f => {
+          f.fillColor = isKraft ? null : colorVal;
+          if (!isKraft) f.bgColor = colorVal;
+          applyFaceMaterial(f);
+        });
+        updateCoverageUI();
+        updateFacePreview();
+        draw2DEditor();
+        showToast(isKraft ? 'Pintura base quitada (cartón kraft)' : `Color base aplicado (${targetList.length} caras)`);
+      }
+
+      document.getElementById('paint-apply-btn').onclick = () => applyBasePaint(document.getElementById('paint-color').value);
+      document.querySelectorAll('.paint-swatch').forEach(btn => {
+        btn.onclick = () => {
+          const val = btn.dataset.swatch;
+          if (val !== 'kraft') document.getElementById('paint-color').value = val;
+          applyBasePaint(val);
+        };
+      });
+
+      // =========================================================================
+      // STICKERS / PNGs CON TRANSPARENCIA (CAPA 2)
+      // =========================================================================
+      function renderStickerList() {
+        const f = getActiveFaceForStickers();
+        const listEl = document.getElementById('sticker-list');
+        const ctrlEl = document.getElementById('sticker-controls');
+        if (!f || !listEl) return;
+
+        if (!f.overlays || f.overlays.length === 0) {
+          listEl.innerHTML = `<div class="text-[10px] text-stone-400 dark:text-zinc-500 italic">Sin stickers en ${f.n}. Sube un PNG transparente.</div>`;
+          ctrlEl.classList.add('hidden');
+          return;
+        }
+
+        if (!f.overlays.some(o => o.id === selectedStickerId)) {
+          selectedStickerId = f.overlays[f.overlays.length - 1].id;
+        }
+
+        listEl.innerHTML = '';
+        f.overlays.forEach((ov, idx) => {
+          const active = ov.id === selectedStickerId;
+          const row = document.createElement('div');
+          row.className = `flex items-center gap-1.5 px-2 py-1 rounded-lg border cursor-pointer transition ${
+            active
+              ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-500/15'
+              : 'border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-900/50'
+          }`;
+          row.innerHTML = `
+            <span class="flex-1 truncate text-[11px] font-medium text-stone-700 dark:text-zinc-200">PNG #${idx + 1} · ${ov.name || 'Sticker'}</span>
+            <button type="button" class="st-del w-5 h-5 text-[10px] rounded bg-stone-200/70 dark:bg-zinc-700 hover:bg-red-500 hover:text-white transition" title="Eliminar">✕</button>
+          `;
+          row.onclick = e => {
+            if (e.target.classList.contains('st-del')) return;
+            selectedStickerId = ov.id;
+            renderStickerList();
+          };
+          row.querySelector('.st-del').onclick = () => {
+            f.overlays = f.overlays.filter(x => x.id !== ov.id);
+            if (selectedStickerId === ov.id) selectedStickerId = null;
+            applyFaceMaterial(f);
+            updateCoverageUI();
+            updateFacePreview();
+            renderStickerList();
+            draw2DEditor();
+          };
+          listEl.appendChild(row);
+        });
+
+        const curOv = f.overlays.find(o => o.id === selectedStickerId);
+        if (curOv) {
+          ctrlEl.classList.remove('hidden');
+          document.getElementById('st-tint-toggle').checked = !!curOv.tintEnabled;
+          document.getElementById('st-tint-color').value = curOv.tintColor || '#caa368';
+          document.getElementById('st-scale').value = curOv.scale;
+          document.getElementById('st-x').value = curOv.x;
+          document.getElementById('st-y').value = curOv.y;
+          document.getElementById('st-rot').value = curOv.rot;
+          document.getElementById('st-scale-v').textContent = `${curOv.scale}%`;
+          document.getElementById('st-x-v').textContent = curOv.x;
+          document.getElementById('st-y-v').textContent = curOv.y;
+          document.getElementById('st-rot-v').textContent = `${curOv.rot}°`;
+        } else {
+          ctrlEl.classList.add('hidden');
+        }
+      }
+      window._renderStickerList = renderStickerList;
+
+      function insertStickerIntoActiveFace(name, img, opts = {}) {
+        const targetFace = getActiveFaceForStickers();
+        if (selectedFaceKey === 'all') selectFace(targetFace.k);
+        const ov = {
+          id: 'st_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          name: (name || 'Sticker').slice(0, 20),
+          img,
+          src: img.src,
+          x: 0, y: 0, scale: opts.scale || 55, rot: 0,
+          tintEnabled: !!opts.tintEnabled,
+          tintColor: opts.tintColor || '#caa368'
+        };
+        targetFace.overlays.push(ov);
+        selectedStickerId = ov.id;
+        applyFaceMaterial(targetFace);
+        updateCoverageUI();
+        updateFacePreview();
+        renderStickerList();
+        draw2DEditor();
+        showToast(`Sticker "${ov.name}" añadido a ${targetFace.n}`);
+      }
+
+      document.getElementById('sticker-upload').onchange = e => {
+        const file = e.target.files[0]; e.target.value = '';
+        if (!file) return;
+        loadImageFile(file, img => {
+          insertStickerIntoActiveFace(file.name.replace(/\.[^.]+$/, ''), img, { tintEnabled: false });
+        });
+      };
+
+      const mutateSticker = fn => {
+        const f = getActiveFaceForStickers();
+        const ov = f && f.overlays.find(o => o.id === selectedStickerId);
+        if (!ov) return;
+        fn(ov);
+        applyFaceMaterial(f);
+        updateFacePreview();
+        renderStickerList();
+        draw2DEditor();
+      };
+      document.getElementById('st-tint-toggle').onchange = e => mutateSticker(o => { o.tintEnabled = e.target.checked; });
+      document.getElementById('st-tint-color').oninput = e => mutateSticker(o => { o.tintColor = e.target.value; o.tintEnabled = true; });
+      document.querySelectorAll('.st-swatch').forEach(btn => {
+        btn.onclick = () => mutateSticker(o => { o.tintColor = btn.dataset.stcolor; o.tintEnabled = true; });
+      });
+      document.getElementById('st-scale').oninput = e => mutateSticker(o => { o.scale = +e.target.value; });
+      document.getElementById('st-x').oninput = e => mutateSticker(o => { o.x = +e.target.value; });
+      document.getElementById('st-y').oninput = e => mutateSticker(o => { o.y = +e.target.value; });
+      document.getElementById('st-rot').oninput = e => mutateSticker(o => { o.rot = +e.target.value; });
+
+      // =========================================================================
+      // BIBLIOTECA DE DISEÑOS Y STICKERS (INDEXEDDB v2 + MANIFEST + FORMAS SVG)
+      // =========================================================================
+      const DB_NAME = 'FlipTopStudioDB';
+      const DB_STORE = 'designs';
+      const DB_STICKERS = 'stickers';
+
+      function openDesignsDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB_NAME, 2);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(DB_STORE)) {
+              db.createObjectStore(DB_STORE, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(DB_STICKERS)) {
+              db.createObjectStore(DB_STICKERS, { keyPath: 'id' });
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function dbGetAll(storeName = DB_STORE) {
+        const db = await openDesignsDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readonly');
+          const req = tx.objectStore(storeName).getAll();
+          req.onsuccess = () => resolve((req.result || []).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function dbPut(record, storeName = DB_STORE) {
+        const db = await openDesignsDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readwrite');
+          tx.objectStore(storeName).put(record);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async function dbDelete(id, storeName = DB_STORE) {
+        const db = await openDesignsDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readwrite');
+          tx.objectStore(storeName).delete(id);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      // Formas vectoriales y estrellitas por defecto (100% recoloreables)
+      const svgUrl = body => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="#ffffff">${body}</svg>`);
+      const SHAPE_STICKERS = [
+        { id: 'sh_star4', name: 'Estrella 4 Puntas', src: svgUrl('<path d="M50 4 L60 40 L96 50 L60 60 L50 96 L40 60 L4 50 L40 40 Z"/>'), tintable: true, defaultColor: '#caa368' },
+        { id: 'sh_star5', name: 'Estrella 5 Puntas', src: svgUrl('<polygon points="50,6 62,36 95,38 69,58 78,90 50,72 22,90 31,58 5,38 38,36"/>'), tintable: true, defaultColor: '#facc15' },
+        { id: 'sh_sparkle', name: 'Destellos', src: svgUrl('<path d="M40 10 L46 34 L70 40 L46 46 L40 70 L34 46 L10 40 L34 34 Z M76 58 L79 70 L91 73 L79 76 L76 88 L73 76 L61 73 L73 70 Z"/>'), tintable: true, defaultColor: '#fde047' },
+        { id: 'sh_moon', name: 'Media Luna', src: svgUrl('<path d="M62 12 A38 38 0 1 0 84 74 A30 30 0 1 1 62 12 Z"/>'), tintable: true, defaultColor: '#caa368' },
+        { id: 'sh_sun', name: 'Sol Celestial', src: svgUrl('<circle cx="50" cy="50" r="18"/><g stroke="#ffffff" stroke-width="5" stroke-linecap="round"><line x1="50" y1="6" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="94"/><line x1="6" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="94" y2="50"/><line x1="19" y1="19" x2="30" y2="30"/><line x1="70" y1="70" x2="81" y2="81"/><line x1="81" y1="19" x2="70" y2="30"/><line x1="30" y1="70" x2="19" y2="81"/></g>'), tintable: true, defaultColor: '#f59e0b' },
+        { id: 'sh_tri', name: 'Triángulo', src: svgUrl('<polygon points="50,10 92,86 8,86" fill="none" stroke="#ffffff" stroke-width="8" stroke-linejoin="round"/>'), tintable: true, defaultColor: '#ffffff' },
+        { id: 'sh_diamond', name: 'Rombo', src: svgUrl('<polygon points="50,6 90,50 50,94 10,50"/>'), tintable: true, defaultColor: '#38bdf8' },
+        { id: 'sh_hex', name: 'Hexágono', src: svgUrl('<polygon points="50,6 88,28 88,72 50,94 12,72 12,28" fill="none" stroke="#ffffff" stroke-width="8"/>'), tintable: true, defaultColor: '#a855f7' },
+        { id: 'sh_ring', name: 'Anillo', src: svgUrl('<circle cx="50" cy="50" r="38" fill="none" stroke="#ffffff" stroke-width="9"/>'), tintable: true, defaultColor: '#ffffff' },
+        { id: 'sh_heart', name: 'Corazón', src: svgUrl('<path d="M50 86 C20 66 8 48 8 32 A20 20 0 0 1 50 24 A20 20 0 0 1 92 32 C92 48 80 66 50 86 Z"/>'), tintable: true, defaultColor: '#ef4444' },
+        { id: 'sh_bolt', name: 'Rayo', src: svgUrl('<polygon points="56,6 18,56 46,56 40,94 82,42 54,42"/>'), tintable: true, defaultColor: '#84cc16' },
+        { id: 'sh_crown', name: 'Corona', src: svgUrl('<polygon points="10,78 16,28 36,48 50,18 64,48 84,28 90,78"/>'), tintable: true, defaultColor: '#eab308' },
+        { id: 'sh_flame', name: 'Llama', src: svgUrl('<path d="M52 8 C66 28 82 40 82 60 A32 32 0 1 1 18 60 C18 44 30 34 36 22 C38 34 44 38 46 32 C46 22 48 14 52 8 Z"/>'), tintable: true, defaultColor: '#f97316' },
+        { id: 'sh_skull', name: 'Calavera', src: svgUrl('<path d="M50 10 C28 10 14 25 14 46 C14 59 21 68 29 73 L29 86 L40 86 L40 77 L46 77 L46 86 L54 86 L54 77 L60 77 L60 86 L71 86 L71 73 C79 68 86 59 86 46 C86 25 72 10 50 10 Z M35 52 A8 8 0 1 1 35 36 A8 8 0 1 1 35 52 Z M65 52 A8 8 0 1 1 65 36 A8 8 0 1 1 65 52 Z M46 66 L50 56 L54 66 Z"/>'), tintable: true, defaultColor: '#ffffff' }
+      ];
+
+      let stickerManifest = { bands: [], pop: [], monster: [] };
+      let activeStickerCat = 'shapes';
+
+      async function loadStickerManifest() {
+        try {
+          const res = await fetch('stickers/manifest.json?t=' + Date.now());
+          if (res.ok) stickerManifest = await res.json();
+        } catch (e) { console.warn('Sin manifest local de stickers:', e); }
+      }
+
+      async function renderStickersGallery() {
+        const grid = document.getElementById('stickers-grid');
+        document.querySelectorAll('.stcat-btn').forEach(b => {
+          const active = b.dataset.stcat === activeStickerCat;
+          b.className = `stcat-btn px-2.5 py-1 rounded-lg transition ${
+            active
+              ? 'bg-amber-600 text-white shadow-sm'
+              : 'bg-stone-200/70 dark:bg-zinc-800 text-stone-700 dark:text-zinc-300 hover:bg-stone-300/70 dark:hover:bg-zinc-700'
+          }`;
+        });
+
+        let list = [];
+        if (activeStickerCat === 'shapes') list = SHAPE_STICKERS;
+        else if (activeStickerCat === 'custom') list = await dbGetAll(DB_STICKERS);
+        else list = stickerManifest[activeStickerCat] || [];
+
+        if (!list.length) {
+          grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-stone-400 dark:text-zinc-500">${
+            activeStickerCat === 'custom'
+              ? 'Aún no guardas PNGs propios. Usa <strong>+ Guardar PNG en Biblioteca</strong> arriba.'
+              : 'Sin stickers en esta categoría.'
+          }</div>`;
+          return;
+        }
+
+        grid.innerHTML = '';
+        list.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'group relative rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-100/80 dark:bg-zinc-800/80 hover:border-amber-500 p-2.5 flex flex-col items-center gap-2 cursor-pointer transition';
+          card.innerHTML = `
+            <div class="w-full h-20 rounded-lg bg-zinc-900/85 dark:bg-zinc-950 flex items-center justify-center p-2 overflow-hidden">
+              <img src="${item.src}" alt="${item.name}" class="max-w-full max-h-full object-contain group-hover:scale-105 transition" />
+            </div>
+            <span class="text-[11px] font-semibold text-stone-700 dark:text-zinc-200 text-center truncate w-full">${item.name}</span>
+            ${activeStickerCat === 'custom' ? `<button type="button" class="cst-del absolute top-1.5 right-1.5 w-5 h-5 rounded-md bg-black/60 hover:bg-red-600 text-white text-[10px]" title="Eliminar">✕</button>` : ''}
+          `;
+          card.onclick = e => {
+            if (e.target.classList.contains('cst-del')) return;
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              insertStickerIntoActiveFace(item.name, img, {
+                tintEnabled: !!item.tintable,
+                tintColor: item.defaultColor || '#caa368'
+              });
+              document.getElementById('stickers-modal').classList.add('hidden');
+            };
+            img.src = item.src;
+          };
+          if (activeStickerCat === 'custom') {
+            card.querySelector('.cst-del').onclick = async () => {
+              await dbDelete(item.id, DB_STICKERS);
+              renderStickersGallery();
+              showToast('Sticker eliminado de tu biblioteca');
+            };
+          }
+          grid.appendChild(card);
+        });
+      }
+
+      const stickersModal = document.getElementById('stickers-modal');
+      document.getElementById('open-stickers-btn').onclick = async () => {
+        stickersModal.classList.remove('hidden');
+        if (!stickerManifest.bands.length) await loadStickerManifest();
+        renderStickersGallery();
+      };
+      document.getElementById('close-stickers-btn').onclick = () => stickersModal.classList.add('hidden');
+      stickersModal.addEventListener('click', e => { if (e.target === stickersModal) stickersModal.classList.add('hidden'); });
+      document.querySelectorAll('.stcat-btn').forEach(btn => {
+        btn.onclick = () => { activeStickerCat = btn.dataset.stcat; renderStickersGallery(); };
+      });
+      document.getElementById('save-custom-sticker').onchange = e => {
+        const file = e.target.files[0]; e.target.value = '';
+        if (!file) return;
+        loadImageFile(file, async img => {
+          const rec = {
+            id: 'cst_' + Date.now(),
+            name: file.name.replace(/\.[^.]+$/, '').slice(0, 22),
+            src: img.src,
+            tintable: false,
+            defaultColor: '#ffffff',
+            createdAt: Date.now()
+          };
+          await dbPut(rec, DB_STICKERS);
+          activeStickerCat = 'custom';
+          await renderStickersGallery();
+          showToast(`"${rec.name}" guardado en Mis PNGs`);
+        });
+      };
+
+      function imageToDataURL(img) {
+        if (!img) return null;
+        if (img.src && img.src.startsWith('data:')) return img.src;
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth || img.width || 512;
+        c.height = img.naturalHeight || img.height || 512;
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        return c.toDataURL('image/png');
+      }
+
+      function captureThumbnail() {
+        try {
+          if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+            return renderer.domElement.toDataURL('image/jpeg', 0.72);
+          }
+        } catch (e) {}
+        return null;
+      }
+
+      function serializeCurrentDesign(name) {
+        const facesData = {};
+        EXTERNAL_FACES.forEach(f => {
+          facesData[f.k] = {
+            fillColor: f.fillColor,
+            bgColor: f.bgColor,
+            rot: f.rot, fh: f.fh, fv: f.fv, zoom: f.zoom, ox: f.ox, oy: f.oy, crop: f.crop,
+            imgData: f.img ? imageToDataURL(f.img) : null,
+            overlays: (f.overlays || []).map(o => ({
+              id: o.id, name: o.name, x: o.x, y: o.y, scale: o.scale, rot: o.rot,
+              tintEnabled: !!o.tintEnabled, tintColor: o.tintColor || '#caa368',
+              src: o.img ? imageToDataURL(o.img) : o.src
+            }))
+          };
+        });
+        return {
+          id: 'des_' + Date.now(),
+          name: name || 'Mi Diseño',
+          createdAt: Date.now(),
+          thumbnail: captureThumbnail(),
+          innerCustomColor: state.innerCustomColor,
+          innerColorHex: state.innerColorHex,
+          faces: facesData
+        };
+      }
+
+      async function applySerializedDesign(record) {
+        const loadImg = src => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+        });
+
+        state.innerCustomColor = !!record.innerCustomColor;
+        state.innerColorHex = record.innerColorHex || '#1f2026';
+        document.getElementById('inner-custom-toggle').checked = state.innerCustomColor;
+        document.getElementById('inner-color-picker').value = state.innerColorHex;
+
+        await Promise.all(EXTERNAL_FACES.map(async f => {
+          const d = record.faces && record.faces[f.k];
+          initFaceState(f);
+          if (!d) return;
+          f.fillColor = d.fillColor || null;
+          f.bgColor = d.bgColor || '#ffffff';
+          f.rot = d.rot || 0; f.fh = !!d.fh; f.fv = !!d.fv;
+          f.zoom = d.zoom || 1; f.ox = d.ox || 0; f.oy = d.oy || 0; f.crop = d.crop || null;
+          if (d.imgData) f.img = await loadImg(d.imgData);
+          if (Array.isArray(d.overlays) && d.overlays.length) {
+            f.overlays = await Promise.all(d.overlays.map(async o => ({
+              id: o.id || ('st_' + Math.random().toString(36).slice(2, 7)),
+              name: o.name || 'Sticker',
+              x: o.x || 0, y: o.y || 0, scale: o.scale || 55, rot: o.rot || 0,
+              tintEnabled: !!o.tintEnabled, tintColor: o.tintColor || '#caa368',
+              src: o.src,
+              img: o.src ? await loadImg(o.src) : null
+            })));
+          }
+        }));
+
+        selectFace('all');
+        refreshAllMaterials();
+        updateFacePreview();
+        renderStickerList();
+        showToast(`Diseño "${record.name}" cargado`);
+      }
+
+      async function renderSavedDesignsGrid() {
+        const grid = document.getElementById('saved-designs-grid');
+        const badge = document.getElementById('saved-count-badge');
+        let items = [];
+        try { items = await dbGetAll(); } catch (e) { console.error(e); }
+
+        badge.textContent = `${items.length} guardado${items.length === 1 ? '' : 's'}`;
+        if (!items.length) {
+          grid.innerHTML = `<div class="col-span-full text-center py-6 px-4 rounded-xl border border-dashed border-stone-300 dark:border-zinc-700 text-xs text-stone-400 dark:text-zinc-500">Aún no guardas diseños propios. Escribe un nombre arriba y pulsa <strong>Guardar actual</strong>.</div>`;
+          return;
+        }
+
+        grid.innerHTML = '';
+        items.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'rounded-xl border border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-800/60 overflow-hidden flex flex-col shadow-sm';
+          const dateStr = new Date(item.createdAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          card.innerHTML = `
+            <div class="h-28 bg-stone-200 dark:bg-zinc-950 flex items-center justify-center overflow-hidden">
+              ${item.thumbnail ? `<img src="${item.thumbnail}" class="w-full h-full object-cover" />` : `<span class="text-xs text-stone-400">Sin vista previa</span>`}
+            </div>
+            <div class="p-2.5 flex flex-col gap-2">
+              <div>
+                <div class="text-xs font-bold text-stone-800 dark:text-zinc-100 truncate">${item.name}</div>
+                <div class="text-[10px] text-stone-400 dark:text-zinc-500">${dateStr}</div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button class="des-load flex-1 text-[11px] font-semibold py-1 rounded-lg bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white transition">Cargar</button>
+                <button class="des-exp text-[11px] font-medium px-2 py-1 rounded-lg bg-stone-200 dark:bg-zinc-700 hover:bg-stone-300 dark:hover:bg-zinc-600 text-stone-700 dark:text-zinc-200 transition" title="Descargar .json">⬇</button>
+                <button class="des-del text-[11px] font-medium px-2 py-1 rounded-lg bg-stone-200 dark:bg-zinc-700 hover:bg-red-500 hover:text-white text-stone-600 dark:text-zinc-300 transition" title="Eliminar">✕</button>
+              </div>
+            </div>
+          `;
+          card.querySelector('.des-load').onclick = async () => {
+            await applySerializedDesign(item);
+            document.getElementById('designs-modal').classList.add('hidden');
+          };
+          card.querySelector('.des-exp').onclick = () => {
+            const blob = new Blob([JSON.stringify(item)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `${item.name.replace(/[^a-z0-9_-]/gi, '_')}.fliptop.json`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Archivo .fliptop.json descargado');
+          };
+          card.querySelector('.des-del').onclick = async () => {
+            await dbDelete(item.id);
+            renderSavedDesignsGrid();
+            showToast('Diseño eliminado');
+          };
+          grid.appendChild(card);
+        });
+      }
+
+      // Eventos del Modal Diseños
+      const designsModal = document.getElementById('designs-modal');
+      document.getElementById('open-designs-btn').onclick = () => {
+        designsModal.classList.remove('hidden');
+        renderSavedDesignsGrid();
+      };
+      document.getElementById('close-designs-btn').onclick = () => designsModal.classList.add('hidden');
+      designsModal.addEventListener('click', e => {
+        if (e.target === designsModal) designsModal.classList.add('hidden');
+      });
+
+      document.querySelectorAll('.apply-preset-btn').forEach(btn => {
+        btn.onclick = async () => {
+          await loadSkinPack(btn.dataset.preset);
+          designsModal.classList.add('hidden');
+        };
+      });
+
+      document.getElementById('save-design-btn').onclick = async () => {
+        const nameInp = document.getElementById('save-design-name');
+        const name = nameInp.value.trim() || `Diseño ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}`;
+        const rec = serializeCurrentDesign(name);
+        await dbPut(rec);
+        nameInp.value = '';
+        await renderSavedDesignsGrid();
+        showToast(`Guardado en Diseños: "${name}"`);
+      };
+
+      document.getElementById('import-design-json').onchange = e => {
+        const file = e.target.files[0]; e.target.value = '';
+        if (!file) return;
+        const fr = new FileReader();
+        fr.onload = async () => {
+          try {
+            const parsed = JSON.parse(fr.result);
+            parsed.id = 'des_' + Date.now();
+            parsed.createdAt = Date.now();
+            await dbPut(parsed);
+            await applySerializedDesign(parsed);
+            await renderSavedDesignsGrid();
+            designsModal.classList.add('hidden');
+          } catch (err) {
+            showToast('Archivo JSON inválido');
+          }
+        };
+        fr.readAsText(file);
+      };
+
+      // Controles de ajuste fino
+      const mutate = fn => {
+        getTargetFaces().forEach(f => { fn(f); applyFaceMaterial(f); });
+        updateFacePreview();
+        draw2DEditor();
+      };
+      document.getElementById('d-rotl').onclick = () => mutate(f => { f.rot = (f.rot + 3) % 4; });
+      document.getElementById('d-rotr').onclick = () => mutate(f => { f.rot = (f.rot + 1) % 4; });
+      document.getElementById('d-fh').onclick = () => mutate(f => { if (f.rot % 2) f.fv = !f.fv; else f.fh = !f.fh; });
+      document.getElementById('d-fv').onclick = () => mutate(f => { if (f.rot % 2) f.fh = !f.fh; else f.fv = !f.fv; });
+      document.getElementById('d-autofit').onclick = () => mutate(f => { if (f.img) computeSmartFit(f, f.img); });
+      document.getElementById('d-zoom').oninput = e => mutate(f => { f.zoom = e.target.value / 100; });
+      document.getElementById('d-ox').oninput = e => mutate(f => { f.ox = +e.target.value; });
+      document.getElementById('d-oy').oninput = e => mutate(f => { f.oy = +e.target.value; });
+      document.getElementById('d-bgcolor').oninput = e => mutate(f => {
+        f.bgColor = e.target.value;
+        f.fillColor = e.target.value;
+      });
+      document.getElementById('d-reset').onclick = () => mutate(f => {
+        f.rot = 0; f.fh = false; f.fv = false; f.zoom = 1; f.ox = 0; f.oy = 0; f.crop = null;
+      });
+
+      // Caras internas
+      document.getElementById('inner-custom-toggle').onchange = e => {
+        state.innerCustomColor = e.target.checked;
+        refreshAllMaterials();
+      };
+      document.getElementById('inner-color-picker').oninput = e => {
+        state.innerColorHex = e.target.value;
+        state.innerCustomColor = true;
+        document.getElementById('inner-custom-toggle').checked = true;
+        refreshAllMaterials();
+      };
+
+      updateFacePreview();
+      renderStickerList();
+    }
+
+    function setupGlobalUI() {
+      // Tabs
+      const setTab = name => {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${name}`));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          const active = b.dataset.tab === name;
+          b.className = `tab-btn py-2.5 border-b-2 transition ${
+            active
+              ? 'border-amber-600 text-amber-800 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-500/5'
+              : 'border-transparent text-stone-500 dark:text-zinc-400 hover:text-stone-800 dark:hover:text-zinc-200'
+          }`;
+        });
+      };
+      document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+      setTab('design');
+
+      // View switcher
+      document.querySelectorAll('.view-btn').forEach(b => b.onclick = () => setViewMode(b.dataset.view));
+
+      // Tema oscuro
+      document.getElementById('theme-toggle-btn').onclick = () => applyTheme(!state.dark);
+
+      // Mapa de Caras
+      const roleBtn = document.getElementById('role-map-btn');
+      roleBtn.onclick = () => {
+        state.roleMapMode = !state.roleMapMode;
+        roleBtn.classList.toggle('ring-2', state.roleMapMode);
+        roleBtn.classList.toggle('ring-amber-500', state.roleMapMode);
+        refreshAllMaterials();
+        showToast(state.roleMapMode ? 'Mapa de caras activo (Azul=A, Naranja=B, Gris=Interna)' : 'Vista de materiales normales');
+      };
+
+      // Panel móvil
+      const panel = document.getElementById('control-panel');
+      const syncMobilePanel = () => {
+        if (window.innerWidth >= 1024) {
+          panel.classList.remove('translate-x-full');
+        } else {
+          panel.classList.toggle('translate-x-full', !state.panelOpenMobile);
+        }
+      };
+      document.getElementById('toggle-panel-btn').onclick = () => {
+        state.panelOpenMobile = !state.panelOpenMobile;
+        syncMobilePanel();
+      };
+      window.addEventListener('resize', syncMobilePanel);
+      syncMobilePanel();
+
+      // Controles 3D / Plegado
+      const foldSlider = document.getElementById('fold-slider');
+      const foldPercent = document.getElementById('fold-percent');
+      const lidSlider = document.getElementById('lid-slider');
+      const lidAngleLabel = document.getElementById('lid-angle-label');
+      const playText = document.getElementById('play-text');
+      const playIcon = document.getElementById('play-icon');
+
+      window._syncFoldUI = () => {
+        foldSlider.value = (state.fold * 100).toFixed(1);
+        foldPercent.textContent = `${Math.round(state.fold * 100)}%`;
+      };
+      window._updatePlayBtnUI = () => {
+        playText.textContent = state.isPlaying ? 'Pausar' : 'Animar';
+        playIcon.innerHTML = state.isPlaying ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z" />' : '<path d="M8 5v14l11-7z" />';
+      };
+
+      foldSlider.oninput = e => {
+        state.isPlaying = false; window._updatePlayBtnUI();
+        state.fold = parseFloat(e.target.value) / 100;
+        foldPercent.textContent = `${Math.round(state.fold * 100)}%`;
+        updateFoldAnimation();
+      };
+      lidSlider.oninput = e => {
+        state.lidOpen = parseFloat(e.target.value);
+        lidAngleLabel.textContent = `${Math.round(state.lidOpen)}°`;
+        updateFoldAnimation();
+      };
+      document.getElementById('speed-slider').oninput = e => {
+        state.speed = parseFloat(e.target.value) / 100;
+        const secs = (1 / (0.24 * state.speed)).toFixed(1).replace('.', ',');
+        document.getElementById('speed-label').textContent = `${state.speed}× · ${secs} s`;
+      };
+      document.getElementById('play-btn').onclick = () => {
+        state.isPlaying = !state.isPlaying;
+        if (state.isPlaying) {
+          if (state.fold >= 0.99) state.playDirection = -1;
+          else if (state.fold <= 0.01) state.playDirection = 1;
+        }
+        window._updatePlayBtnUI();
+      };
+      document.getElementById('flat-btn').onclick = () => {
+        state.isPlaying = false; window._updatePlayBtnUI();
+        state.fold = 0; state.lidOpen = 0; lidSlider.value = 0; lidAngleLabel.textContent = '0°';
+        window._syncFoldUI(); updateFoldAnimation(); setCameraView('top');
+      };
+      document.getElementById('assembled-btn').onclick = () => {
+        state.isPlaying = false; window._updatePlayBtnUI();
+        state.fold = 1; window._syncFoldUI(); updateFoldAnimation(); setCameraView('3d');
+      };
+
+      document.querySelectorAll('.cam-btn').forEach(b => b.onclick = () => setCameraView(b.dataset.cam));
+
+      document.getElementById('toggle-lighter').onchange = e => { state.showLighter = e.target.checked; updateFoldAnimation(); };
+      document.getElementById('toggle-labels').onchange = e => {
+        state.showLabels = e.target.checked;
+        document.getElementById('labels-layer').style.display = state.showLabels ? 'block' : 'none';
+      };
+      document.getElementById('labels-layer').style.display = 'none';
+
+      // Exportación PDF y SVG
+      document.getElementById('download-pdf-duplex').onclick = () => generateAndDownloadPDF(true);
+      document.getElementById('download-pdf-a').onclick = () => generateAndDownloadPDF(false);
+      document.getElementById('download-svg-a').onclick = () => generateAndDownloadSVG('A');
+      document.getElementById('download-svg-b').onclick = () => generateAndDownloadSVG('B');
+      document.getElementById('download-svg-clean').onclick = () => generateAndDownloadSVG('clean');
+    }
+
+    /**
+     * ============================================================================
+     * 12. BUCLE DE RENDERIZADO
+     * ============================================================================
+     */
+    const _projVec = new THREE.Vector3();
+    function updateProjectedLabels() {
+      if (!state.showLabels) return;
+      const container = document.getElementById('canvas-container');
+      const w = container.clientWidth, h = container.clientHeight;
+      for (const item of labelAnchors) {
+        item.anchor.getWorldPosition(_projVec);
+        _projVec.project(camera);
+        if (_projVec.z > 1) { item.el.style.opacity = '0'; continue; }
+        item.el.style.left = `${(_projVec.x * 0.5 + 0.5) * w}px`;
+        item.el.style.top = `${(-_projVec.y * 0.5 + 0.5) * h}px`;
+        item.el.style.opacity = '0.92';
+      }
+    }
+
+    let lastTime = performance.now();
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      if (state.isPlaying) {
+        state.fold += state.playDirection * dt * 0.24 * state.speed;
+        if (state.fold >= 1.0) { state.fold = 1.0; state.isPlaying = false; window._updatePlayBtnUI(); }
+        else if (state.fold <= 0.0) { state.fold = 0.0; state.playDirection = 1; }
+        window._syncFoldUI();
+        updateFoldAnimation();
+      }
+
+      const damp = 1 - Math.exp(-9 * dt);
+      orbit.theta += (orbit.desiredTheta - orbit.theta) * damp;
+      orbit.phi += (orbit.desiredPhi - orbit.phi) * damp;
+      orbit.radius += (orbit.desiredRadius - orbit.radius) * damp;
+      orbit.target.lerp(orbit.desiredTarget, damp);
+
+      camera.position.x = orbit.target.x + orbit.radius * Math.sin(orbit.phi) * Math.sin(orbit.theta);
+      camera.position.y = orbit.target.y + orbit.radius * Math.cos(orbit.phi);
+      camera.position.z = orbit.target.z + orbit.radius * Math.sin(orbit.phi) * Math.cos(orbit.theta);
+      camera.lookAt(orbit.target);
+
+      if (!document.getElementById('pane-3d').classList.contains('hidden')) {
+        renderer.render(scene, camera);
+        updateProjectedLabels();
+      }
+    }
+
+    window.onload = function () {
+      initScene();
+      buildDesignPanelUI();
+      setup2DEditorEvents();
+      setupGlobalUI();
+      updateLayer2DButtons();
+
+      // Respetar preferencia guardada o tema del sistema
+      const savedTheme = localStorage.getItem('fliptop-theme');
+      const preferDark = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(preferDark);
+
+      setCameraView('3d');
+      setViewMode(window.innerWidth >= 1024 ? 'split' : '3d');
+      refreshAllMaterials();
+      lastTime = performance.now();
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>

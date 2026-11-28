@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Caja Flip-Top Studio v2 — Diseño 2D/3D y Troquel 1:1</title>
+  <title>Caja Flip-Top Studio v3 — Estudio de Diseño 2D/3D y Troquel 1:1</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
     tailwind.config = {
@@ -17,9 +17,17 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Oswald:wght@500;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/audio-engine.js"></script>
+  <script src="js/layers-store.js"></script>
+  <script src="js/color-wheel.js"></script>
+  <script src="js/studio-canvas.js"></script>
+  <script src="js/studio-3d-edit.js"></script>
+  <script src="js/mockup-export.js"></script>
+  <script src="js/studio-ui.js"></script>
 
   <style>
     :root {
@@ -111,28 +119,39 @@
         </svg>
       </div>
       <div class="truncate">
-        <h1 class="text-xs sm:text-sm font-bold leading-tight text-stone-900 dark:text-zinc-50 truncate">Caja Flip-Top Studio <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 ml-1">v2.1</span></h1>
-        <p class="hidden md:block text-[10px] text-stone-500 dark:text-zinc-400">13 caras externas (Lado A + B) · Escala real 1:1 mm</p>
+        <h1 class="text-xs sm:text-sm font-bold leading-tight text-stone-900 dark:text-zinc-50 truncate">Caja Flip-Top Studio <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 ml-1">v3.0</span></h1>
+        <p class="hidden md:block text-[10px] text-stone-500 dark:text-zinc-400">Estudio de Diseño 2D/3D · Escala real 1:1 mm</p>
       </div>
     </div>
 
-    <!-- Switcher de Vista -->
-    <div class="flex items-center bg-stone-100 dark:bg-zinc-800 p-0.5 rounded-xl border border-stone-200/80 dark:border-zinc-700/80 text-[11px] font-semibold">
-      <button data-view="3d" class="view-btn px-2.5 py-1 rounded-lg transition">3D</button>
-      <button data-view="split" class="view-btn hidden sm:inline-block px-2.5 py-1 rounded-lg transition">2D + 3D</button>
-      <button data-view="2d" class="view-btn px-2.5 py-1 rounded-lg transition">Plantilla 2D</button>
+    <!-- Switcher de Modo Principal (v3.0) -->
+    <div class="flex items-center bg-stone-100 dark:bg-zinc-800 p-0.5 rounded-xl border border-stone-200/80 dark:border-zinc-700/80 text-xs font-semibold">
+      <button data-mode="studio" class="app-mode-btn flex items-center gap-1.5 px-3 py-1 rounded-lg transition"><span data-icon="mode-studio" data-size="w-[18px] h-[18px]"></span><span>Diseño</span></button>
+      <button data-mode="3d" class="app-mode-btn flex items-center gap-1.5 px-3 py-1 rounded-lg transition"><span data-icon="mode-3d" data-size="w-[18px] h-[18px]"></span><span>3D</span></button>
+      <button data-mode="export" class="app-mode-btn flex items-center gap-1.5 px-3 py-1 rounded-lg transition"><span data-icon="mode-export" data-size="w-[18px] h-[18px]"></span><span>Exportar</span></button>
     </div>
 
     <!-- Acciones rápidas -->
     <div class="flex items-center gap-1.5">
-      <button id="open-designs-btn" title="Abrir biblioteca de diseños guardados y presets"
-        class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-amber-600/15 dark:bg-amber-500/20 hover:bg-amber-600/25 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 transition">
-        <span>🎨</span>
-        <span>Diseños</span>
+      <div class="hidden sm:flex items-center gap-0.5 bg-stone-100 dark:bg-zinc-800 p-0.5 rounded-xl border border-stone-200 dark:border-zinc-700">
+        <button id="studio-undo-btn" title="Deshacer (Ctrl+Z)" class="p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-zinc-700 disabled:opacity-35 transition"><span data-icon="undo" data-size="w-[18px] h-[18px]"></span></button>
+        <button id="studio-redo-btn" title="Rehacer (Ctrl+Y)" class="p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-zinc-700 disabled:opacity-35 transition"><span data-icon="redo" data-size="w-[18px] h-[18px]"></span></button>
+      </div>
+
+      <button id="studio-audio-btn" title="Activar/Silenciar efectos de sonido dinámicos"
+        class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-amber-900 dark:text-amber-300 transition">
+        <span data-icon="sound-on" data-size="w-[18px] h-[18px]"></span><span class="hidden md:inline">Sonido</span>
       </button>
 
+      <button id="studio-quicksave-btn" title="Guardar o abrir diseños guardados"
+        class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-amber-600/15 dark:bg-amber-500/20 hover:bg-amber-600/25 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 transition">
+        <span data-icon="save" data-size="w-[18px] h-[18px]"></span><span class="hidden sm:inline">Diseños</span>
+      </button>
+
+      <button id="open-designs-btn" class="hidden"></button>
+
       <button id="role-map-btn" title="Resaltar caras Externas (A/B), Internas y Pegado"
-        class="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-100/80 dark:bg-zinc-800 hover:bg-stone-200/80 dark:hover:bg-zinc-700 text-stone-700 dark:text-zinc-200 transition">
+        class="hidden xl:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-100/80 dark:bg-zinc-800 hover:bg-stone-200/80 dark:hover:bg-zinc-700 text-stone-700 dark:text-zinc-200 transition">
         <span class="w-2 h-2 rounded-full bg-amber-500"></span>
         <span>Mapa Caras</span>
       </button>
@@ -160,13 +179,234 @@
   <!-- ÁREA DE TRABAJO PRINCIPAL (3D + EDITOR 2D + PANEL DERECHO)               -->
   <!-- ======================================================================== -->
   <main class="fixed inset-0 top-[52px] flex overflow-hidden">
+    <!-- ====================================================================== -->
+    <!-- STUDIO v3: RAIL IZQUIERDO DE HERRAMIENTAS                              -->
+    <!-- ====================================================================== -->
+    <nav id="studio-left-dock" class="hidden flex-col items-center gap-2 w-[74px] py-3 bg-white/95 dark:bg-zinc-900/95 border-r border-stone-200 dark:border-zinc-800 shrink-0 z-20">
+      <button data-drawer="assets" class="dock-btn flex flex-col items-center justify-center gap-1 w-14 h-14 rounded-xl text-[10px] font-semibold transition" title="Cargar imágenes y galería de assets">
+        <span data-icon="dock-assets" data-size="w-6 h-6"></span><span>Assets</span>
+      </button>
+      <button data-drawer="designs" class="dock-btn flex flex-col items-center justify-center gap-1 w-14 h-14 rounded-xl text-[10px] font-semibold transition" title="Diseños guardados y Celestial">
+        <span data-icon="dock-designs" data-size="w-6 h-6"></span><span>Diseños</span>
+      </button>
+      <button data-drawer="text" class="dock-btn flex flex-col items-center justify-center gap-1 w-14 h-14 rounded-xl text-[10px] font-semibold transition" title="Agregar texto y tipografías">
+        <span data-icon="dock-text" data-size="w-6 h-6"></span><span>Texto</span>
+      </button>
+      <button data-drawer="bg" class="dock-btn flex flex-col items-center justify-center gap-1 w-14 h-14 rounded-xl text-[10px] font-semibold transition" title="Fondo, pintura y paleta automática">
+        <span data-icon="dock-bg" data-size="w-6 h-6"></span><span>Fondo</span>
+      </button>
+      <button data-drawer="model" class="dock-btn flex flex-col items-center justify-center gap-1 w-14 h-14 rounded-xl text-[10px] font-semibold transition" title="Modelo de caja y lista de caras">
+        <span data-icon="dock-model" data-size="w-6 h-6"></span><span>Modelo</span>
+      </button>
+    </nav>
+
+    <!-- ====================================================================== -->
+    <!-- STUDIO v3: DRAWER DESPLEGABLE IZQUIERDO                                -->
+    <!-- ====================================================================== -->
+    <aside id="studio-left-drawer" class="hidden w-64 sm:w-72 flex flex-col bg-white/95 dark:bg-zinc-900/95 border-r border-stone-200 dark:border-zinc-800 shrink-0 z-20 overflow-hidden">
+      <div class="flex items-center justify-between px-3 py-2.5 border-b border-stone-200 dark:border-zinc-800 shrink-0">
+        <span id="drawer-title" class="text-xs font-bold text-stone-800 dark:text-zinc-100">📁 Assets e Imágenes</span>
+        <button id="drawer-close-btn" class="w-6 h-6 rounded-lg hover:bg-stone-200 dark:hover:bg-zinc-800 text-xs text-stone-500">✕</button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scroll p-3 space-y-3">
+
+        <!-- DRAWER 1: ASSETS E IMÁGENES -->
+        <div id="drawer-pane-assets" class="drawer-pane space-y-3">
+          <!-- Rueda RGB + Pintado Rápido -->
+          <div class="rounded-xl p-2.5 bg-stone-50 dark:bg-zinc-800/60 border border-stone-200 dark:border-zinc-700/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-300">🌈 Rueda RGB</span>
+              <div class="flex items-center gap-1.5">
+                <span id="rgb-wheel-preview" class="w-4 h-4 rounded-full border border-stone-400/70 inline-block" style="background:#1a242e"></span>
+                <input id="rgb-wheel-hex" type="text" value="#1A242E" maxlength="7" class="w-16 text-[10px] font-mono font-bold text-center rounded border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-1 py-0.5 text-stone-800 dark:text-zinc-100" />
+              </div>
+            </div>
+            <div class="flex justify-center">
+              <canvas id="rgb-wheel-canvas" width="168" height="168" class="w-[152px] h-[152px] cursor-crosshair select-none"></canvas>
+            </div>
+            <button id="assets-paint-all-btn" type="button" class="w-full text-xs font-bold py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-sm active:scale-[0.99] transition">
+              🎨 Pintar Toda la Caja
+            </button>
+            <div class="grid grid-cols-3 gap-1">
+              <button id="assets-paint-face-btn" type="button" class="col-span-2 text-[10px] font-semibold py-1 px-2 rounded-lg bg-stone-200/80 dark:bg-zinc-700 hover:bg-stone-300 dark:hover:bg-zinc-600 text-stone-800 dark:text-zinc-100 transition">🪣 Solo esta Cara</button>
+              <button id="assets-paint-kraft-btn" type="button" title="Restaurar cartón Kraft natural en toda la caja" class="text-[10px] font-bold py-1 px-2 rounded-lg bg-[#d4a373]/80 hover:bg-[#d4a373] text-stone-900 transition">Kraft</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-1.5">
+            <label class="cursor-pointer text-center text-xs font-semibold bg-stone-800 hover:bg-stone-900 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-white rounded-xl py-2 px-3 shadow-sm transition">
+              + Subir Imagen a esta Cara
+              <input id="drawer-upload-img-layer" type="file" accept="image/*" class="hidden" />
+            </label>
+            <label class="cursor-pointer text-center text-[11px] font-semibold bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 text-stone-700 dark:text-zinc-200 rounded-xl py-1.5 px-2 transition">
+              💾 Guardar PNG en Mis Assets
+              <input id="drawer-save-png-lib" type="file" accept="image/png,image/webp,image/svg+xml,image/*" class="hidden" />
+            </label>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <button data-cat="shapes" class="asset-cat-btn">⭐ Formas</button>
+            <button data-cat="bands" class="asset-cat-btn">🤘 Bandas</button>
+            <button data-cat="pop" class="asset-cat-btn">🛸 Pop</button>
+            <button data-cat="monster" class="asset-cat-btn">⚡ Monster</button>
+            <button data-cat="custom" class="asset-cat-btn">💾 Mis PNGs</button>
+          </div>
+          <div id="drawer-assets-grid" class="grid grid-cols-2 gap-2"></div>
+        </div>
+
+        <!-- DRAWER 2: DISEÑOS GUARDADOS (CELESTIAL + MIS DISEÑOS) -->
+        <div id="drawer-pane-designs" class="drawer-pane hidden space-y-3">
+          <div class="rounded-xl p-2.5 bg-stone-50 dark:bg-zinc-800/60 border border-stone-200 dark:border-zinc-700 space-y-1.5">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Guardar Diseño Actual</div>
+            <input id="drawer-save-name" type="text" placeholder="Nombre (ej. Pedido Juan)" class="w-full text-xs rounded-lg border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-stone-800 dark:text-zinc-100" />
+            <input id="drawer-save-note" type="text" placeholder="Nota / categoría (opcional)" class="w-full text-[11px] rounded-lg border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-stone-700 dark:text-zinc-300" />
+            <div class="flex gap-1.5 pt-0.5">
+              <button id="drawer-save-design-btn" class="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition">💾 Guardar</button>
+              <label class="cursor-pointer text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-stone-200 dark:bg-zinc-700 hover:bg-stone-300 dark:hover:bg-zinc-600 text-stone-700 dark:text-zinc-200 transition" title="Importar archivo .fliptop.json">
+                ⬆ JSON
+                <input id="drawer-import-json" type="file" accept=".json,application/json" class="hidden" />
+              </label>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Diseño Preinstalado</div>
+            <div class="rounded-xl border border-amber-500/35 bg-gradient-to-br from-[#1a242e] to-[#111820] p-2.5 text-white space-y-2 shadow-sm">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">✨</span>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-[#e2be82] truncate">Celestial Dorado & Azul Noche</div>
+                  <div class="text-[10px] text-slate-300">13 caras a 305 DPI · Listo para usar</div>
+                </div>
+              </div>
+              <button id="drawer-apply-celestial" class="w-full text-[11px] font-semibold py-1.5 rounded-lg bg-[#caa368] hover:bg-[#d8b47b] text-[#141c24] transition">Aplicar Celestial</button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Guardados con Éxito</span>
+              <span id="drawer-designs-count" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-stone-200 dark:bg-zinc-700">0</span>
+            </div>
+            <input id="drawer-designs-search" type="text" placeholder="🔍 Buscar por nombre o nota..." class="w-full text-[11px] rounded-lg border border-stone-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-stone-700 dark:text-zinc-200" />
+            <div id="drawer-designs-list" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- DRAWER 3: TEXTO -->
+        <div id="drawer-pane-text" class="drawer-pane hidden space-y-2.5">
+          <p class="text-[11px] text-stone-500 dark:text-zinc-400 leading-snug">Añade nombres, fechas o frases personalizadas. Edita la fuente, color y borde en el inspector derecho.</p>
+          <button data-text="TU NOMBRE" data-font="Playfair Display" data-size="16" data-color="#caa368" class="add-text-preset w-full text-left p-3 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-800/70 hover:border-amber-500 transition">
+            <div class="text-base font-bold text-[#caa368]" style="font-family:'Playfair Display',serif">Elegante Dorado</div>
+            <div class="text-[10px] text-stone-400">Playfair Display · Ideal regalos</div>
+          </button>
+          <button data-text="EDICIÓN LIMITADA" data-font="Bebas Neue" data-size="20" data-color="#ffffff" class="add-text-preset w-full text-left p-3 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-800/70 hover:border-amber-500 transition">
+            <div class="text-lg tracking-wider text-stone-800 dark:text-white" style="font-family:'Bebas Neue',sans-serif">IMPACTO URBANO</div>
+            <div class="text-[10px] text-stone-400">Bebas Neue · Títulos grandes</div>
+          </button>
+          <button data-text="Para ti ✨" data-font="Pacifico" data-size="15" data-color="#f9a8d4" class="add-text-preset w-full text-left p-3 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-800/70 hover:border-amber-500 transition">
+            <div class="text-base text-pink-500" style="font-family:'Pacifico',cursive">Dedicatoria Script</div>
+            <div class="text-[10px] text-stone-400">Pacifico · Estilo firma</div>
+          </button>
+          <button data-text="ROCK & ROLL" data-font="Permanent Marker" data-size="16" data-color="#facc15" class="add-text-preset w-full text-left p-3 rounded-xl border border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-800/70 hover:border-amber-500 transition">
+            <div class="text-base text-amber-500" style="font-family:'Permanent Marker',cursive">Marcador Urbano</div>
+            <div class="text-[10px] text-stone-400">Permanent Marker · Bandas</div>
+          </button>
+        </div>
+
+        <!-- DRAWER 4: FONDO Y PALETA AUTOMÁTICA -->
+        <div id="drawer-pane-bg" class="drawer-pane hidden space-y-3">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Aplicar color base a:</label>
+            <select id="drawer-bg-scope" class="w-full text-xs border border-stone-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 bg-white dark:bg-zinc-900">
+              <option value="selected">Solo cara activa</option>
+              <option value="all">Toda la caja</option>
+              <option value="A">Solo Lado A (Caja + Tapa)</option>
+              <option value="B">Solo Lado B (Bolsillo)</option>
+              <option value="inner">Interior de la caja</option>
+            </select>
+            <div class="flex gap-1.5">
+              <input id="drawer-bg-color" type="color" value="#1a242e" class="w-10 h-8 rounded-lg border border-stone-300 dark:border-zinc-600 cursor-pointer bg-transparent" />
+              <button id="drawer-bg-apply" class="flex-1 text-xs font-semibold rounded-lg bg-stone-800 dark:bg-amber-600 hover:opacity-90 text-white transition">Pintar</button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Paleta Extraída de tu Imagen</div>
+            <div id="drawer-auto-palette" class="flex items-center gap-1.5 flex-wrap"></div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Colores Clásicos</div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button data-swatch="kraft" title="Cartón Kraft natural" class="drawer-bg-swatch w-7 h-7 rounded-lg border-2 border-stone-400 bg-[#d4a373] text-[10px] font-bold text-stone-900">K</button>
+              <button data-swatch="#18181b" class="drawer-bg-swatch w-7 h-7 rounded-lg border border-stone-400/60 bg-[#18181b]"></button>
+              <button data-swatch="#1a242e" class="drawer-bg-swatch w-7 h-7 rounded-lg border border-stone-400/60 bg-[#1a242e]"></button>
+              <button data-swatch="#f5f2eb" class="drawer-bg-swatch w-7 h-7 rounded-lg border border-stone-300 bg-[#f5f2eb]"></button>
+              <button data-swatch="#4c1d24" class="drawer-bg-swatch w-7 h-7 rounded-lg border border-stone-400/60 bg-[#4c1d24]"></button>
+              <button data-swatch="#1b3a2d" class="drawer-bg-swatch w-7 h-7 rounded-lg border border-stone-400/60 bg-[#1b3a2d]"></button>
+              <button data-swatch="#caa368" class="drawer-bg-swatch w-7 h-7 rounded-lg border border-stone-400/60 bg-[#caa368]"></button>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-stone-200 dark:border-zinc-800 space-y-1.5">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Auto-Diseño Rápido</div>
+            <label class="block text-center cursor-pointer text-[11px] font-semibold bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/40 text-amber-900 dark:text-amber-300 rounded-lg py-1.5 px-2 transition">
+              ✨ Cubrir Todas las Caras
+              <input id="drawer-cover-all" type="file" accept="image/*" class="hidden" />
+            </label>
+            <label class="block text-center cursor-pointer text-[11px] font-semibold bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700 rounded-lg py-1.5 px-2 transition">
+              🌀 Envoltura Continua 360°
+              <input id="drawer-cover-wrap" type="file" accept="image/*" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <!-- DRAWER 5: MODELO Y CARAS -->
+        <div id="drawer-pane-model" class="drawer-pane hidden space-y-3">
+          <div class="grid grid-cols-2 gap-1.5">
+            <button id="drawer-model-with" type="button">🔥 Con BIC J6</button>
+            <button id="drawer-model-no" type="button">📦 Clásica</button>
+          </div>
+          <label class="flex items-center justify-between text-[11px] font-medium cursor-pointer p-2 rounded-lg bg-stone-100 dark:bg-zinc-800/70">
+            <span>🪟 Ventanita frontal (35×38 mm)</span>
+            <input id="drawer-model-win" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
+          </label>
+          <div class="space-y-1">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-zinc-400">Caras Externas (Capas)</div>
+            <div id="drawer-faces-list" class="space-y-1"></div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
     <!-- Contenedor de Viewports (2D / 3D) -->
     <div id="viewports" class="flex-1 flex relative min-w-0 h-full overflow-hidden">
 
       <!-- PANE 2D INTERACTIVO -->
       <section id="pane-2d" class="hidden relative flex-1 h-full flex-col border-r border-stone-200/80 dark:border-zinc-800 bg-[#ede6db] dark:bg-[#161821] overflow-hidden">
-        <!-- Toolbar del Editor 2D -->
-        <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-white/80 dark:bg-zinc-900/85 backdrop-blur border-b border-stone-200/80 dark:border-zinc-800 text-[11px] z-10">
+        <!-- Toolbar del Estudio de Diseño v3 -->
+        <div id="studio-canvas-toolbar" class="hidden flex-wrap items-center justify-between gap-2 px-3 py-2 bg-white/85 dark:bg-zinc-900/90 backdrop-blur border-b border-stone-200/80 dark:border-zinc-800 text-[11px] z-10">
+          <div class="flex items-center gap-2">
+            <select id="studio-face-select" class="text-[11px] font-semibold border border-stone-200 dark:border-zinc-700 rounded-lg px-2 py-1 bg-white dark:bg-zinc-950 text-stone-800 dark:text-zinc-100"></select>
+            <div class="flex items-center gap-0.5 bg-stone-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-stone-200/70 dark:border-zinc-700">
+              <button data-submode="focus" class="canvas-submode-btn flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold"><span data-icon="sub-focus" data-size="w-[17px] h-[17px]"></span><span>Cara</span></button>
+              <button data-submode="continuous" class="canvas-submode-btn flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold"><span data-icon="sub-continuous" data-size="w-[17px] h-[17px]"></span><span>Frente+Tapa</span></button>
+              <button data-submode="diecut" class="canvas-submode-btn flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold"><span data-icon="sub-diecut" data-size="w-[17px] h-[17px]"></span><span>Troquel</span></button>
+              <button data-submode="edit3d" class="canvas-submode-btn flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold"><span data-icon="sub-edit3d" data-size="w-[17px] h-[17px]"></span><span>Editar 3D</span></button>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="studio-snap-btn" class="flex items-center gap-1.5" title="Imán de centrado automático (Snap)"><span data-icon="snap" data-size="w-[17px] h-[17px]"></span><span>Snap</span></button>
+            <button id="studio-guides-btn" class="flex items-center gap-1.5" title="Mostrar margen seguro de 2 mm"><span data-icon="guides" data-size="w-[17px] h-[17px]"></span><span>Guías</span></button>
+            <button id="studio-zoom-out" class="w-6 h-6 rounded-md bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 font-bold">−</button>
+            <button id="studio-zoom-reset" class="px-2 h-6 rounded-md bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 font-medium">100%</button>
+            <button id="studio-zoom-in" class="w-6 h-6 rounded-md bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 font-bold">+</button>
+          </div>
+        </div>
+
+        <!-- Toolbar Legacy del Editor 2D (usada en modo Exportar) -->
+        <div id="legacy-2d-toolbar" class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-white/80 dark:bg-zinc-900/85 backdrop-blur border-b border-stone-200/80 dark:border-zinc-800 text-[11px] z-10">
           <div class="flex items-center gap-1 bg-stone-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-stone-200/70 dark:border-zinc-700">
             <button data-layer2d="both" class="layer2d-btn px-2 py-0.5 rounded-md font-semibold transition">Todas (A+B)</button>
             <button data-layer2d="A" class="layer2d-btn px-2 py-0.5 rounded-md font-semibold transition">Lado A · Caja</button>
@@ -180,22 +420,115 @@
           </div>
         </div>
 
-        <!-- Canvas 2D -->
-        <div id="canvas2d-wrap" class="relative flex-1 w-full h-full overflow-hidden">
+        <!-- Lienzo Focus / Frente Continuo (Studio v3) -->
+        <div id="studio-focus-wrap" class="relative flex-1 w-full h-full overflow-hidden">
+          <canvas id="studio-focus-canvas" class="block w-full h-full"></canvas>
+          <div class="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-zinc-900/80 backdrop-blur border border-stone-200/70 dark:border-zinc-800 text-[10px] text-stone-500 dark:text-zinc-400 pointer-events-none">
+            Arrastra esquinas para escalar (sonido dinámico) · Círculo superior para rotar · Flechas: mover fino · Ctrl+Z: deshacer
+          </div>
+        </div>
+
+        <!-- Canvas 2D Troquel Completo -->
+        <div id="canvas2d-wrap" class="hidden relative flex-1 w-full h-full overflow-hidden">
           <canvas id="canvas-2d" class="block w-full h-full cursor-crosshair"></canvas>
           <!-- Leyenda inferior 2D -->
           <div class="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-zinc-900/85 backdrop-blur border border-stone-200/80 dark:border-zinc-800 text-[10px] text-stone-600 dark:text-zinc-300 pointer-events-none">
             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-blue-500/30 border border-blue-500 inline-block"></span>Lado A (Exterior Caja)</span>
             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-orange-500/30 border border-orange-500 inline-block"></span>Lado B (Exterior Bolsillo)</span>
             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-stone-400/30 border border-stone-400 inline-block"></span>Interna / Pegado (sin tinta)</span>
-            <span class="hidden xl:inline text-stone-400 dark:text-zinc-500">· Arrastra archivo encima de una cara · Arrastra cara seleccionada para mover</span>
           </div>
+        </div>
+
+        <!-- Lienzo de Edición Directa en 3D (Studio v3 — Estilo Roblox Studio) -->
+        <div id="studio-3d-edit-wrap" class="hidden relative flex-1 flex-col w-full h-full overflow-hidden">
+          <!-- Ribbon de Herramientas 3D estilo Roblox Studio -->
+          <div id="studio-3d-ribbon" class="hidden flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-b border-stone-200 dark:border-zinc-800 text-[11px] z-20 shadow-sm">
+            <!-- Herramientas de Gizmo (1-5) -->
+            <div class="flex items-center gap-1 bg-stone-100 dark:bg-zinc-800 p-1 rounded-xl border border-stone-200/80 dark:border-zinc-700">
+              <button data-rtool="select" class="rblx-tool-btn" title="Seleccionar cara/capa (Tecla 1)"><span data-icon="rblx-select" data-size="w-5 h-5"></span><span>Select</span> <kbd class="opacity-60 text-[9px]">1</kbd></button>
+              <button data-rtool="move" class="rblx-tool-btn" title="Mover con flechas 3D (Tecla 2)"><span data-icon="rblx-move" data-size="w-5 h-5"></span><span>Move</span> <kbd class="opacity-60 text-[9px]">2</kbd></button>
+              <button data-rtool="scale" class="rblx-tool-btn" title="Escalar con nodos 3D + sonido (Tecla 3)"><span data-icon="rblx-scale" data-size="w-5 h-5"></span><span>Scale</span> <kbd class="opacity-60 text-[9px]">3</kbd></button>
+              <button data-rtool="rotate" class="rblx-tool-btn" title="Rotar con anillo 3D (Tecla 4)"><span data-icon="rblx-rotate" data-size="w-5 h-5"></span><span>Rotate</span> <kbd class="opacity-60 text-[9px]">4</kbd></button>
+              <button data-rtool="bucket" class="rblx-tool-btn" title="Balde de Pintura: clic en cualquier cara 3D para pintar su base (Tecla 5)"><span data-icon="rblx-bucket" data-size="w-5 h-5"></span><span>Pintar</span> <kbd class="opacity-60 text-[9px]">5</kbd></button>
+              <input id="rblx-bucket-color" type="color" value="#1a242e" title="Color del Balde de Pintura" class="w-7 h-7 rounded-lg border border-stone-300 dark:border-zinc-600 cursor-pointer bg-transparent shrink-0" />
+              <button id="rblx-paint-all-btn" type="button" title="Pintar toda la caja con este color" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-600/15 hover:bg-amber-600 hover:text-white text-amber-800 dark:text-amber-300 text-[11px] font-bold transition"><span data-icon="paint-all" data-size="w-[18px] h-[18px]"></span><span>Toda</span></button>
+            </div>
+
+            <!-- Snap / Incrementos estilo Model Tab -->
+            <div class="flex items-center gap-2 px-2 py-0.5 rounded-lg bg-stone-50 dark:bg-zinc-800/60 border border-stone-200/80 dark:border-zinc-700/80 text-[10px]">
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input id="rblx-snap-move-chk" type="checkbox" checked class="w-3.5 h-3.5 accent-amber-600 rounded" />
+                <span class="font-semibold text-stone-600 dark:text-zinc-300">Mover</span>
+              </label>
+              <select id="rblx-snap-move-val" class="bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-700 rounded px-1 py-0.5 text-[10px] font-semibold">
+                <option value="0">Libre</option>
+                <option value="1" selected>1 mm</option>
+                <option value="2">2 mm</option>
+                <option value="5">5 mm</option>
+              </select>
+
+              <span class="text-stone-300 dark:text-zinc-700">|</span>
+
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input id="rblx-snap-rot-chk" type="checkbox" checked class="w-3.5 h-3.5 accent-amber-600 rounded" />
+                <span class="font-semibold text-stone-600 dark:text-zinc-300">Rotar</span>
+              </label>
+              <select id="rblx-snap-rot-val" class="bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-700 rounded px-1 py-0.5 text-[10px] font-semibold">
+                <option value="0">Libre</option>
+                <option value="5">5°</option>
+                <option value="15" selected>15°</option>
+                <option value="45">45°</option>
+                <option value="90">90°</option>
+              </select>
+            </div>
+
+            <!-- Acciones rápidas sobre el asset 3D -->
+            <div class="flex items-center gap-1">
+              <button id="rblx-act-center" title="Centrar en cara" class="p-1.5 rounded-lg bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700"><span data-icon="center" data-size="w-[18px] h-[18px]"></span></button>
+              <button id="rblx-act-dup" title="Duplicar capa (Ctrl+D)" class="p-1.5 rounded-lg bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700"><span data-icon="duplicate" data-size="w-[18px] h-[18px]"></span></button>
+              <button id="rblx-act-flip" title="Espejar horizontal" class="p-1.5 rounded-lg bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700"><span data-icon="flip-h" data-size="w-[18px] h-[18px]"></span></button>
+              <button id="rblx-act-zup" title="Subir capa" class="p-1.5 rounded-lg bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700"><span data-icon="z-up" data-size="w-[18px] h-[18px]"></span></button>
+              <button id="rblx-act-zdown" title="Bajar capa" class="p-1.5 rounded-lg bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 border border-stone-200 dark:border-zinc-700"><span data-icon="z-down" data-size="w-[18px] h-[18px]"></span></button>
+              <button id="rblx-act-del" title="Eliminar capa" class="p-1.5 rounded-lg bg-stone-100 dark:bg-zinc-800 hover:bg-red-500 hover:text-white border border-stone-200 dark:border-zinc-700"><span data-icon="trash" data-size="w-[18px] h-[18px]"></span></button>
+            </div>
+
+            <!-- Cara activa + Control de Tapa -->
+            <div class="flex items-center gap-2">
+              <span id="s3d-face-badge" class="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 font-semibold text-[10px] max-w-[160px] truncate">Frente</span>
+              <label class="flex items-center gap-1 text-[10px] text-stone-600 dark:text-zinc-300">
+                <span>Tapa</span>
+                <input id="s3d-lid-slider" type="range" min="0" max="110" step="1" value="0" class="w-14" />
+                <span id="s3d-lid-val" class="font-bold w-6">0°</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="studio-3d-edit-host" class="relative flex-1 w-full min-h-0"></div>
+
+          <!-- Ayuda atajos edición 3D -->
+          <div class="absolute bottom-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-white/85 dark:bg-zinc-900/85 backdrop-blur border border-stone-200/70 dark:border-zinc-800 text-[10px] text-stone-600 dark:text-zinc-400 pointer-events-none">
+            Teclas 1–4: Select / Move / Scale / Rotate · Arrastra los gizmos sobre el 3D · Clic der o vacío: girar cámara · Suelta fotos en cualquier cara
+          </div>
+        </div>
+
+        <!-- MINI-VISOR 3D FLOTANTE (PiP) EN MODO DISEÑO -->
+        <div id="studio-pip-3d" class="hidden absolute bottom-3 right-3 z-20 rounded-2xl border border-stone-300 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-xl overflow-hidden transition-all" style="width:240px;">
+          <div class="flex items-center justify-between px-2.5 py-1.5 border-b border-stone-200 dark:border-zinc-800 text-[10px] font-bold text-stone-700 dark:text-zinc-200">
+            <span>🧊 Vista 3D en Vivo</span>
+            <div class="flex items-center gap-1">
+              <button id="pip-expand-btn" title="Abrir 3D completo" class="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-zinc-800 hover:bg-amber-500/20">⤢</button>
+              <button id="pip-toggle-btn" title="Minimizar/Expandir" class="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700">▼</button>
+            </div>
+          </div>
+          <div id="studio-pip-3d-body" class="w-full h-44 relative"></div>
         </div>
       </section>
 
       <!-- PANE 3D WEBGL -->
       <section id="pane-3d" class="relative flex-1 h-full overflow-hidden">
-        <div id="canvas-container" class="w-full h-full touch-none"></div>
+        <div id="pane-3d-host" class="w-full h-full">
+          <div id="canvas-container" class="w-full h-full touch-none"></div>
+        </div>
         <div id="labels-layer" class="absolute inset-0 pointer-events-none overflow-hidden z-10"></div>
 
         <!-- Indicador de etapa 3D flotante -->
@@ -212,7 +545,38 @@
     </div>
 
     <!-- ====================================================================== -->
-    <!-- PANEL LATERAL DERECHO CON PESTAÑAS                                     -->
+    <!-- STUDIO v3: PANEL DERECHO (CAPAS + INSPECTOR CONTEXTUAL)                -->
+    <!-- ====================================================================== -->
+    <aside id="studio-right-panel" class="hidden w-72 sm:w-80 flex-col bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-l border-stone-200 dark:border-zinc-800 shrink-0 z-20 overflow-hidden">
+      <!-- Sección Superior: Capas -->
+      <div class="flex flex-col border-b border-stone-200 dark:border-zinc-800" style="max-height:48%;">
+        <div class="flex items-center justify-between px-3 py-2 bg-stone-50/80 dark:bg-zinc-900 border-b border-stone-200/70 dark:border-zinc-800 shrink-0">
+          <div class="flex items-center gap-1.5">
+            <span data-icon="layers" data-size="w-[18px] h-[18px]" class="text-amber-600 dark:text-amber-400"></span>
+            <span class="text-xs font-bold text-stone-800 dark:text-zinc-100">Capas</span>
+            <span id="studio-layers-count" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300">0</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button id="layers-quick-add-asset" class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-stone-200/80 dark:bg-zinc-800 hover:bg-amber-500 hover:text-white transition" title="Añadir imagen o sticker">+ Asset</button>
+            <button id="layers-quick-add-text" class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-stone-200/80 dark:bg-zinc-800 hover:bg-amber-500 hover:text-white transition" title="Añadir texto">+ Texto</button>
+            <button id="layers-clear-face" class="p-1 rounded-md text-red-500 hover:bg-red-500/15 transition" title="Limpiar esta cara"><span data-icon="trash" data-size="w-4 h-4"></span></button>
+          </div>
+        </div>
+        <div id="studio-layers-list" class="overflow-y-auto custom-scroll p-2.5 space-y-1.5"></div>
+      </div>
+
+      <!-- Sección Inferior: Inspector Contextual -->
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="flex items-center gap-1.5 px-3 py-2 bg-stone-50/80 dark:bg-zinc-900 border-b border-stone-200/70 dark:border-zinc-800 text-[11px] font-bold uppercase tracking-wider text-stone-600 dark:text-zinc-400 shrink-0">
+          <span data-icon="sliders" data-size="w-[18px] h-[18px]" class="text-amber-600 dark:text-amber-400"></span>
+          <span>Propiedades de Capa</span>
+        </div>
+        <div id="studio-inspector-body" class="flex-1 overflow-y-auto custom-scroll p-3"></div>
+      </div>
+    </aside>
+
+    <!-- ====================================================================== -->
+    <!-- PANEL LATERAL DERECHO CON PESTAÑAS (MODO 3D Y EXPORTAR)                -->
     <!-- ====================================================================== -->
     <aside id="control-panel"
       class="fixed lg:static right-0 top-[52px] bottom-0 w-80 sm:w-[340px] z-20 flex flex-col bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-l border-stone-200 dark:border-zinc-800 shadow-2xl lg:shadow-none transition-transform duration-250">
@@ -509,6 +873,17 @@
               <span class="font-medium text-stone-700 dark:text-zinc-300">Etiquetas 3D</span>
               <input id="toggle-labels" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
             </label>
+          </div>
+
+          <hr class="border-stone-200 dark:border-zinc-800" />
+
+          <div class="rounded-xl p-3 bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/30 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">📸 Mockup para Cliente (WhatsApp)</div>
+            <p class="text-[10px] text-stone-600 dark:text-zinc-400 leading-snug">Exporta una imagen limpia (1600×1000 PNG) con dos ángulos de la caja armada para aprobación.</p>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button id="export-mockup-dark" class="text-[11px] font-semibold py-1.5 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white transition">🌙 Fondo Oscuro</button>
+              <button id="export-mockup-light" class="text-[11px] font-semibold py-1.5 px-2 rounded-lg bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 transition">☀️ Fondo Claro</button>
+            </div>
           </div>
         </div>
 
@@ -1551,12 +1926,14 @@
       f.ox = 0;
       f.oy = 0;
       f.crop = null;         // [u0, v0, u1, v1] para modo Envoltura Continua
-      f.overlays = [];       // Capa 2: Stickers / PNGs transparentes [{ id, name, img, src, x, y, scale, rot }]
+      f.overlays = [];       // Legacy v2.x
+      f.layers = [];         // v3.0: Capas unificadas ordenables (image / sticker / text)
       f.mat = null;
       f.canvasCache = null;  // Último canvas renderizado (reutilizado en 2D y SVG)
     }
 
     function faceHasContent(f) {
+      if (window.StudioLayers) return window.StudioLayers.faceHasContentUnified(f);
       return !!(f.img || f.fillColor || (f.overlays && f.overlays.length > 0));
     }
 
@@ -1602,8 +1979,11 @@
       f.rot = ((imgPortrait && faceLandscape) || (imgLandscape && facePortrait)) ? 1 : 0;
     }
 
-    // Renderiza la cara en vista "armada derecha" componiendo las 3 capas
+    // Renderiza la cara en vista "armada derecha" componiendo todas las capas (v3 unificado)
     function renderFaceCanvas(f, pxPerMm = PX_PER_MM) {
+      if (window.StudioLayers) {
+        return window.StudioLayers.renderFaceCanvasUnified(f, pxPerMm);
+      }
       const c = document.createElement('canvas');
       c.width = Math.max(16, Math.round(f.w * pxPerMm));
       c.height = Math.max(16, Math.round(f.h * pxPerMm));
@@ -1745,6 +2125,7 @@
       getActiveExternalFaces().forEach(applyFaceMaterial);
       updateCoverageUI();
       draw2DEditor();
+      if (window.StudioCanvas) window.StudioCanvas.render();
     }
 
     function updateCoverageUI() {
@@ -1791,6 +2172,7 @@
       updateCoverageUI();
       updateFacePreview();
       draw2DEditor();
+      if (window.StudioCanvas) window.StudioCanvas.render();
     }
 
     function autoFillEmptyFaces() {
@@ -1814,6 +2196,7 @@
       updateCoverageUI();
       updateFacePreview();
       draw2DEditor();
+      if (window.StudioCanvas) window.StudioCanvas.render();
     }
 
     /**
@@ -1862,6 +2245,7 @@
       editor2D.panX = 0;
       editor2D.panY = 0;
       draw2DEditor();
+      if (window.StudioCanvas) window.StudioCanvas.render();
     }
 
     function pointInPoly(px, py, poly) {
@@ -2538,6 +2922,7 @@
         matCutLine.color.setHex(isDark ? 0x0f172a : 0x1c1917);
       }
       draw2DEditor();
+      if (window.StudioCanvas) window.StudioCanvas.render();
     }
 
     function initScene() {
@@ -2601,6 +2986,7 @@
         renderer.setSize(container.clientWidth, container.clientHeight);
       }
       fit2DView();
+      if (window.StudioCanvas) window.StudioCanvas.resize();
     }
 
     function setupOrbitControls(domEl) {
@@ -2710,6 +3096,7 @@
       updateFacePreview();
       if (window._renderStickerList) window._renderStickerList();
       draw2DEditor();
+      if (window.StudioCanvas) window.StudioCanvas.render();
     }
 
     function getTargetFaces() {
@@ -2843,6 +3230,7 @@
         syncBoxModelUI();
         showToast(state.hasWindow ? 'Ventanita frontal activada (35×38 mm)' : 'Ventanita frontal desactivada');
       };
+      window._syncBoxModelUI = syncBoxModelUI;
 
       syncBoxModelUI();
 
@@ -2911,6 +3299,7 @@
 
           const jobs = EXTERNAL_FACES.map(async f => {
             f.overlays = [];
+            f.layers = [];
             const url = pack.faces && pack.faces[f.k];
             if (!url) { f.img = null; f.fillColor = null; return; }
             const img = await loadUrl(url);
@@ -2918,6 +3307,7 @@
             f.fillColor = null;
             f.bgColor = pack.innerColor || '#1a242e';
             f.rot = 0; f.fh = false; f.fv = false; f.zoom = 1; f.ox = 0; f.oy = 0; f.crop = null;
+            if (window.StudioLayers) window.StudioLayers.ensureFaceLayers(f);
           });
           await Promise.all(jobs);
 
@@ -3167,6 +3557,8 @@
         { id: 'sh_sparkle', name: 'Destellos', src: svgUrl('<path d="M40 10 L46 34 L70 40 L46 46 L40 70 L34 46 L10 40 L34 34 Z M76 58 L79 70 L91 73 L79 76 L76 88 L73 76 L61 73 L73 70 Z"/>'), tintable: true, defaultColor: '#fde047' },
         { id: 'sh_moon', name: 'Media Luna', src: svgUrl('<path d="M62 12 A38 38 0 1 0 84 74 A30 30 0 1 1 62 12 Z"/>'), tintable: true, defaultColor: '#caa368' },
         { id: 'sh_sun', name: 'Sol Celestial', src: svgUrl('<circle cx="50" cy="50" r="18"/><g stroke="#ffffff" stroke-width="5" stroke-linecap="round"><line x1="50" y1="6" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="94"/><line x1="6" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="94" y2="50"/><line x1="19" y1="19" x2="30" y2="30"/><line x1="70" y1="70" x2="81" y2="81"/><line x1="81" y1="19" x2="70" y2="30"/><line x1="30" y1="70" x2="19" y2="81"/></g>'), tintable: true, defaultColor: '#f59e0b' },
+        { id: 'sh_sun_face', name: 'Sol con Rostro', src: svgUrl('<defs><mask id="sfm"><rect width="100" height="100" fill="#ffffff"/><g fill="none" stroke="#000000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M37 43 Q42 39 46 42"/><path d="M54 42 Q58 39 63 43"/><path d="M37 48 Q42 52 46 48"/><path d="M54 48 Q58 52 63 48"/><path d="M50 45 L48.5 55 Q50 57 52.5 55"/><path d="M44 61 Q47.5 59.5 50 61 Q52.5 59.5 56 61"/><path d="M46.5 64.5 Q50 66.5 53.5 64.5"/></g></mask></defs><g mask="url(#sfm)"><path d="M50 3 C53 13 55 19 54 24 C60 19 67 13 73 9 C70 18 68 24 66 28 C74 26 82 24 89 24 C81 31 76 36 73 39 C81 40 89 43 97 50 C87 53 81 55 76 54 C81 60 87 67 91 73 C82 70 76 68 72 66 C74 74 76 82 76 89 C69 81 64 76 61 73 C60 81 57 89 50 97 C47 87 45 81 46 76 C40 81 33 87 27 91 C30 82 32 76 34 72 C26 74 18 76 11 76 C19 69 24 64 27 61 C19 60 11 57 3 50 C13 47 19 45 24 46 C19 40 13 33 9 27 C18 30 24 32 28 34 C26 26 24 18 24 11 C31 19 36 24 39 27 C40 19 43 11 50 3 Z"/><circle cx="50" cy="50" r="24"/></g>'), tintable: true, defaultColor: '#f5b841' },
+        { id: 'sh_moon_face', name: 'Luna con Rostro', src: svgUrl('<defs><mask id="mfm"><rect width="100" height="100" fill="#ffffff"/><g fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M52 36 Q60 32 67 37"/><path d="M54 44 Q61 48 68 43"/><path d="M64 46 L66 49"/><path d="M51 64 Q56 66 61 63"/></g></mask></defs><path mask="url(#mfm)" d="M40 10 C67 10 86 29 86 52 C86 76 66 91 41 90 C32 90 25 87 21 84 C32 82 40 77 44 71 C46 68 46 66 43 65 C46 63 47 61 44 59 C39 58 37 56 39 53 C42 49 45 45 45 41 C45 33 41 24 31 16 C34 12 37 10 40 10 Z"/>'), tintable: true, defaultColor: '#cbd5e1' },
         { id: 'sh_tri', name: 'Triángulo', src: svgUrl('<polygon points="50,10 92,86 8,86" fill="none" stroke="#ffffff" stroke-width="8" stroke-linejoin="round"/>'), tintable: true, defaultColor: '#ffffff' },
         { id: 'sh_diamond', name: 'Rombo', src: svgUrl('<polygon points="50,6 90,50 50,94 10,50"/>'), tintable: true, defaultColor: '#38bdf8' },
         { id: 'sh_hex', name: 'Hexágono', src: svgUrl('<polygon points="50,6 88,28 88,72 50,94 12,72 12,28" fill="none" stroke="#ffffff" stroke-width="8"/>'), tintable: true, defaultColor: '#a855f7' },
@@ -3187,6 +3579,22 @@
           if (res.ok) stickerManifest = await res.json();
         } catch (e) { console.warn('Sin manifest local de stickers:', e); }
       }
+
+      // Exponer puente de BD y stickers para StudioUI v3
+      window._studioDB = {
+        dbGetAll,
+        dbPut,
+        dbDelete,
+        captureThumbnail,
+        getStickerCategoryItems: async cat => {
+          if (cat === 'shapes') return SHAPE_STICKERS;
+          if (cat === 'custom') return await dbGetAll(DB_STICKERS);
+          if (!stickerManifest.bands.length && !stickerManifest.pop.length && !stickerManifest.monster.length) {
+            await loadStickerManifest();
+          }
+          return stickerManifest[cat] || [];
+        }
+      };
 
       async function renderStickersGallery() {
         const grid = document.getElementById('stickers-grid');
@@ -3520,6 +3928,7 @@
         });
       };
       document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+      window._setLegacyTab = setTab;
       setTab('design');
 
       // View switcher
@@ -3667,9 +4076,12 @@
       camera.position.z = orbit.target.z + orbit.radius * Math.sin(orbit.phi) * Math.cos(orbit.theta);
       camera.lookAt(orbit.target);
 
-      if (!document.getElementById('pane-3d').classList.contains('hidden')) {
+      const c3d = document.getElementById('canvas-container');
+      if (c3d && c3d.clientWidth > 0 && c3d.clientHeight > 0) {
         renderer.render(scene, camera);
-        updateProjectedLabels();
+        if (!document.getElementById('pane-3d').classList.contains('hidden')) {
+          updateProjectedLabels();
+        }
       }
     }
 
@@ -3686,8 +4098,97 @@
       applyTheme(preferDark);
 
       setCameraView('3d');
-      setViewMode(window.innerWidth >= 1024 ? 'split' : '3d');
       refreshAllMaterials();
+
+      // Inicializar Studio v3 (Canvas Pro + UI de Estudio + Mockup 3D)
+      if (window.StudioCanvas && window.StudioUI) {
+        window.StudioCanvas.init({
+          getActiveFace: () => window.StudioUI.getActiveFace(),
+          getFaceByKey: k => EXTERNAL_FACES.find(x => x.k === k),
+          getSelectedLayer: () => window.StudioUI.getSelectedLayer(),
+          selectLayer: id => window.StudioUI.selectLayer(id),
+          onFaceMutated: (faces, skipRebuild) => window.StudioUI.onExternalFaceMutated(faces, skipRebuild),
+          pushHistory: () => window.StudioLayers.pushHistory(EXTERNAL_FACES, state),
+          getState: () => state,
+          getWIN: () => WIN,
+          drawDiecut2D: () => draw2DEditor(),
+          fitDiecut2D: () => fit2DView()
+        });
+
+        // Inicializar Edición Directa en 3D ANTES de StudioUI para arrancar en Editar 3D
+        if (window.Studio3DEdit) {
+          window.Studio3DEdit.init({
+            getRendererDom: () => renderer.domElement,
+            getCamera: () => camera,
+            getPanels: () => panels,
+            getActiveExternalFaces: () => getActiveExternalFaces(),
+            getActiveFace: () => window.StudioUI.getActiveFace(),
+            getSelectedLayer: () => window.StudioUI.getSelectedLayer(),
+            selectLayer: id => window.StudioUI.selectLayer(id),
+            selectFaceFrom3D: k => {
+              selectFace(k);
+              const f = EXTERNAL_FACES.find(x => x.k === k);
+              if (f) {
+                window.StudioLayers.ensureFaceLayers(f);
+                window.StudioUI.selectLayer(f.layers.length ? f.layers[f.layers.length - 1].id : null);
+              }
+              window.StudioUI.refreshAllUI();
+            },
+            onFaceMutated: (faces, skipRebuild) => window.StudioUI.onExternalFaceMutated(faces, skipRebuild),
+            pushHistory: () => window.StudioLayers.pushHistory(EXTERNAL_FACES, state),
+            loadImageFile: (file, cb) => loadImageFile(file, cb),
+            updateCoverageUI: () => updateCoverageUI(),
+            showToast: msg => showToast(msg),
+            getAppMode: () => window.StudioUI.getAppMode(),
+            setLidOpen: deg => {
+              state.lidOpen = deg;
+              const ls = document.getElementById('lid-slider');
+              const ll = document.getElementById('lid-angle-label');
+              if (ls) ls.value = deg;
+              if (ll) ll.textContent = `${Math.round(deg)}°`;
+              updateFoldAnimation();
+            }
+          });
+        }
+
+        window.StudioUI.init({
+          getExternalFaces: () => EXTERNAL_FACES,
+          getActiveExternalFaces: () => getActiveExternalFaces(),
+          getSelectedFaceKey: () => selectedFaceKey,
+          selectFace: k => selectFace(k),
+          getState: () => state,
+          initFaceState: f => initFaceState(f),
+          applyFaceMaterial: f => applyFaceMaterial(f),
+          refreshAllMaterials: () => refreshAllMaterials(),
+          updateCoverageUI: () => updateCoverageUI(),
+          loadImageFile: (file, cb) => loadImageFile(file, cb),
+          loadSkinPack: url => window._loadSkinPack(url),
+          syncBoxModelUI: () => window._syncBoxModelUI && window._syncBoxModelUI(),
+          setLegacyTab: t => window._setLegacyTab && window._setLegacyTab(t),
+          onViewportResize: () => onViewportResize(),
+          fit2DView: () => fit2DView(),
+          showToast: msg => showToast(msg),
+          pushHistory: () => window.StudioLayers.pushHistory(EXTERNAL_FACES, state),
+          dbGetAll: s => window._studioDB.dbGetAll(s),
+          dbPut: (rec, s) => window._studioDB.dbPut(rec, s),
+          dbDelete: (id, s) => window._studioDB.dbDelete(id, s),
+          captureThumbnail: () => window._studioDB.captureThumbnail(),
+          getStickerCategoryItems: cat => window._studioDB.getStickerCategoryItems(cat)
+        });
+
+        // Botones de exportación de Mockup 3D para clientes
+        const mkDark = document.getElementById('export-mockup-dark');
+        const mkLight = document.getElementById('export-mockup-light');
+        const runMockup = style => window.StudioMockup.exportClientMockup({
+          renderer, scene, camera, orbit, state,
+          setFoldAndRender: () => updateFoldAnimation(),
+          showToast,
+          style
+        });
+        if (mkDark) mkDark.onclick = () => runMockup('dark');
+        if (mkLight) mkLight.onclick = () => runMockup('light');
+      }
+
       lastTime = performance.now();
       requestAnimationFrame(animate);
     };
